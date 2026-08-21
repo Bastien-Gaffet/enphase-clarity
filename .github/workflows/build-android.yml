@@ -25,12 +25,12 @@ jobs:
       - name: Prebuild native Android project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Build debug APK
+      - name: Build release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
-          name: enphase-clarity-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: enphase-clarity-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 14

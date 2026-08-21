@@ -20,7 +20,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#06070E"
-      }
+      },
+      "package": "com.anonymous.enphaseclarity"
     },
     "web": {
       "bundler": "metro",
