@@ -3,9 +3,26 @@
  * (categorical hues pass CVD ΔE ≥ 8 / normal-vision ΔE ≥ 15 adjacent gates
  * in both light and dark, see dataviz skill references/palette.md).
  * App is dark-first; light mode uses the same steps mirrored.
+ *
+ * Dark-mode chrome and the `brand` accent/highlight pair are the app's own
+ * palette (background #06070E, accent #3685B5, highlight #A8F9FF — 17.5:1
+ * and 6.3:1 contrast on that background respectively). Light mode keeps a
+ * deepened highlight (#A8F9FF has near-zero contrast on white) and reuses
+ * the accent as-is (3.2:1 on white — fine for icons/large UI, not body text).
  */
 
 export type ColorScheme = "light" | "dark";
+
+const brand = {
+  light: {
+    accent: "#3685B5",
+    highlight: "#0E7490", // deepened cyan — #A8F9FF has ~1:1 contrast on white
+  },
+  dark: {
+    accent: "#3685B5",
+    highlight: "#A8F9FF",
+  },
+};
 
 const chrome = {
   light: {
@@ -20,15 +37,15 @@ const chrome = {
     baseline: "#c3c2b7",
   },
   dark: {
-    page: "#0d0d0d",
-    surface: "#1a1a19",
-    surfaceRaised: "#232322",
+    page: "#06070E",
+    surface: "#10121C",
+    surfaceRaised: "#171A28",
     textPrimary: "#ffffff",
-    textSecondary: "#c3c2b7",
-    textMuted: "#898781",
-    hairline: "#2c2c2a",
-    border: "rgba(255,255,255,0.10)",
-    baseline: "#383835",
+    textSecondary: "#B7C0D1",
+    textMuted: "#7C8496",
+    hairline: "#232739",
+    border: "rgba(168,249,255,0.10)",
+    baseline: "#2E3346",
   },
 };
 
@@ -67,7 +84,7 @@ const status = {
 const energy = {
   light: {
     production: series.light.yellow, // solar
-    grid: series.light.blue, // import from grid
+    grid: brand.light.accent, // import from grid — ties to the brand accent
     consumption: chrome.light.textPrimary, // load, drawn in ink, not a category
     battery: series.light.aqua,
     surplus: series.light.aqua, // resold / exported
@@ -77,7 +94,7 @@ const energy = {
   },
   dark: {
     production: series.dark.yellow,
-    grid: series.dark.blue,
+    grid: brand.dark.accent,
     consumption: chrome.dark.textPrimary,
     battery: series.dark.aqua,
     surplus: series.dark.aqua,
@@ -87,7 +104,7 @@ const energy = {
   },
 };
 
-export const palette = { chrome, series, status, energy };
+export const palette = { chrome, series, status, energy, brand };
 
 function statusFor(scheme: ColorScheme) {
   return {
@@ -104,6 +121,7 @@ export function tokens(scheme: ColorScheme) {
     series: series[scheme],
     status: statusFor(scheme),
     energy: energy[scheme],
+    brand: brand[scheme],
   };
 }
 

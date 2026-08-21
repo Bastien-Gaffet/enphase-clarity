@@ -32,10 +32,10 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
               paddingVertical: space.sm,
               borderRadius: radius.sm,
               alignItems: "center",
-              backgroundColor: active ? colors.page : "transparent",
+              backgroundColor: active ? colors.brand.accent : "transparent",
             }}
           >
-            <Text style={{ color: active ? colors.textPrimary : colors.textMuted, fontWeight: "600", fontSize: 13 }}>
+            <Text style={{ color: active ? "#ffffff" : colors.textMuted, fontWeight: "600", fontSize: 13 }}>
               {opt.label}
             </Text>
           </Pressable>

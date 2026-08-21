@@ -40,9 +40,9 @@ export function SliderField({
         step={step}
         value={value}
         onValueChange={onValueChange}
-        minimumTrackTintColor={colors.textPrimary}
+        minimumTrackTintColor={colors.brand.accent}
         maximumTrackTintColor={colors.hairline}
-        thumbTintColor={colors.textPrimary}
+        thumbTintColor={colors.brand.highlight}
       />
     </View>
   );

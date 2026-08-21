@@ -20,7 +20,7 @@ export function Button({ label, onPress, variant = "primary", loading, disabled 
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => ({
-        backgroundColor: isPrimary ? colors.textPrimary : colors.surfaceRaised,
+        backgroundColor: isPrimary ? colors.brand.accent : colors.surfaceRaised,
         borderWidth: isPrimary ? 0 : 1,
         borderColor: colors.border,
         borderRadius: radius.md,
@@ -30,9 +30,9 @@ export function Button({ label, onPress, variant = "primary", loading, disabled 
       })}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.page : colors.textPrimary} />
+        <ActivityIndicator color={isPrimary ? "#ffffff" : colors.textPrimary} />
       ) : (
-        <Text style={{ color: isPrimary ? colors.page : colors.textPrimary, fontWeight: "700", fontSize: 15 }}>
+        <Text style={{ color: isPrimary ? "#ffffff" : colors.textPrimary, fontWeight: "700", fontSize: 15 }}>
           {label}
         </Text>
       )}
