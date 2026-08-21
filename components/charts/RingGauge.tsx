@@ -17,7 +17,9 @@ export function RingGauge({ progress, size = 148, strokeWidth = 12, color, label
   const { colors, type } = useTheme();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const clamped = Math.max(0, Math.min(1, progress));
+  // A non-finite progress would make strokeDashoffset NaN, which native SVG
+  // will not render.
+  const clamped = Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0;
   const dashOffset = circumference * (1 - clamped);
 
   return (

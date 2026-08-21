@@ -9,26 +9,28 @@ import { tokens } from "@/theme/colors";
 import { useCredentialsStore } from "@/store/useCredentialsStore";
 import { useEnergyPolling } from "@/hooks/useEnergyPolling";
 import { useHistorySync } from "@/hooks/useHistorySync";
+import { AppErrorBoundary } from "@/components/ui/AppErrorBoundary";
 
-export {
-  ErrorBoundary,
-} from "expo-router";
+export const ErrorBoundary = AppErrorBoundary;
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const loadCredentials = useCredentialsStore((s) => s.load);
-  const credentialsLoaded = useCredentialsStore((s) => s.loaded);
 
+  // Credentials load in the background: the app opens in demo mode and never
+  // waits on stored credentials to render — a storage failure must not be able
+  // to leave the user on a blank screen.
   useEffect(() => {
-    loadCredentials().finally(() => SplashScreen.hideAsync());
+    loadCredentials().finally(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    });
   }, [loadCredentials]);
 
-  if (!credentialsLoaded) return null;
   return <RootLayoutNav />;
 }
 

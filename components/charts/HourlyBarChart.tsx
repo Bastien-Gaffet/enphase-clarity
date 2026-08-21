@@ -19,15 +19,19 @@ interface HourlyBarChartProps {
 
 export function HourlyBarChart({ data, width = 320, height = 120, barGap = 2 }: HourlyBarChartProps) {
   const { colors } = useTheme();
-  const max = Math.max(1e-6, ...data.map((d) => d.value));
-  const barWidth = width / data.length - barGap;
+  // Guard the empty case: width / 0 would make every bar geometry non-finite.
+  if (data.length === 0) return null;
+
+  const max = Math.max(1e-6, ...data.map((d) => (Number.isFinite(d.value) ? d.value : 0)));
+  const barWidth = Math.max(1, width / data.length - barGap);
 
   return (
     <View>
       <Svg width={width} height={height + 4}>
         <Line x1={0} y1={height} x2={width} y2={height} stroke={colors.baseline} strokeWidth={1} />
         {data.map((d, i) => {
-          const barHeight = Math.max(2, (d.value / max) * height);
+          const value = Number.isFinite(d.value) ? d.value : 0;
+          const barHeight = Math.max(2, (value / max) * height);
           const x = i * (barWidth + barGap);
           const y = height - barHeight;
           return (

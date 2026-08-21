@@ -4,7 +4,7 @@ import { useTheme } from "../../theme/useTheme";
 
 export function ProgressBar({ progress, color }: { progress: number; color: string }) {
   const { colors, radius } = useTheme();
-  const clamped = Math.max(0, Math.min(1, progress));
+  const clamped = Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0;
   return (
     <View
       style={{

@@ -38,6 +38,9 @@ export function Sparkline({ series, width = 320, height = 96 }: SparklineProps) 
         <Line x1={0} y1={height} x2={width} y2={height} stroke={colors.baseline} strokeWidth={1} />
         {series.map((s, idx) => {
           const linePath = buildPath(s.values, width, height, max);
+          // An empty series yields an empty path; emitting it anyway would
+          // produce a `d` with no leading moveto, which is invalid SVG.
+          if (!linePath) return null;
           const areaPath = s.filled ? `${linePath} L${width},${height} L0,${height} Z` : null;
           return (
             <React.Fragment key={idx}>
