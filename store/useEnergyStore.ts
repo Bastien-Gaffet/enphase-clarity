@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { EnergyInterval } from "../lib/calculations/types";
-import { EnphaseClient, toEnergyIntervals } from "../lib/enphase/client";
+import { EnphaseClient, fetchEnergyIntervals } from "../lib/enphase/client";
 import { generateMockDay, generateMockSnapshot, type LiveSnapshot } from "../lib/enphase/mock";
 import { useCredentialsStore } from "./useCredentialsStore";
 import { useSettingsStore } from "./useSettingsStore";
@@ -43,12 +43,12 @@ export const useEnergyStore = create<EnergyState>((set, get) => ({
 
       const dayStart = new Date();
       dayStart.setHours(0, 0, 0, 0);
-      const rgm = await client.getRgmStats(
+      const todayIntervals = await fetchEnergyIntervals(
+        client,
         enphaseSystemId,
         Math.floor(dayStart.getTime() / 1000),
         Math.floor(Date.now() / 1000)
       );
-      const todayIntervals = toEnergyIntervals(rgm);
       const summary = await client.getSummary(enphaseSystemId);
 
       const last = todayIntervals[todayIntervals.length - 1];

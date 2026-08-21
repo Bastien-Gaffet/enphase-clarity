@@ -42,3 +42,12 @@ export interface EnphaseRgmStatsResponse {
     intervals: EnphaseRgmInterval[];
   }[];
 }
+
+/** Shape of GET /systems/{id}/telemetry/production_meter and /telemetry/consumption_meter. */
+export interface EnphaseTelemetryResponse {
+  system_id: number;
+  granularity: string;
+  total_devices: number;
+  start_date: string;
+  intervals: EnphaseRgmInterval[];
+}

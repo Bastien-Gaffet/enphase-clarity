@@ -1,9 +1,11 @@
 import type { EnergyInterval } from "../calculations/types";
+import { EnphaseAuthError, refreshAccessToken } from "./oauth";
 import type {
   EnphaseCredentials,
   EnphaseRgmStatsResponse,
   EnphaseSummary,
   EnphaseSystem,
+  EnphaseTelemetryResponse,
 } from "./types";
 
 /**
@@ -14,9 +16,8 @@ import type {
  */
 
 const API_BASE = "https://api.enphaseenergy.com/api/v4";
-const TOKEN_URL = "https://api.enphaseenergy.com/oauth/token";
 
-export class EnphaseAuthError extends Error {}
+export { EnphaseAuthError };
 
 export type TokenRefreshHandler = (creds: EnphaseCredentials) => Promise<void>;
 
@@ -30,28 +31,12 @@ export class EnphaseClient {
     const nowSec = Math.floor(Date.now() / 1000);
     if (this.creds.expiresAt - nowSec > 60) return;
 
-    const res = await fetch(TOKEN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${btoa(`${this.creds.clientId}:${this.creds.clientSecret}`)}`,
-      },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: this.creds.refreshToken,
-      }).toString(),
-    });
-
-    if (!res.ok) {
-      throw new EnphaseAuthError(`Token refresh failed (${res.status})`);
-    }
-
-    const json = await res.json();
+    const result = await refreshAccessToken(this.creds);
     this.creds = {
       ...this.creds,
-      accessToken: json.access_token,
-      refreshToken: json.refresh_token ?? this.creds.refreshToken,
-      expiresAt: nowSec + json.expires_in,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      expiresAt: result.expiresAt,
     };
     await this.onTokenRefreshed(this.creds);
   }
@@ -86,9 +71,8 @@ export class EnphaseClient {
 
   /**
    * Revenue-grade meter stats: 15-min intervals with signed average power
-   * (negative `powr` = net export). Falls back to deriving import/export
-   * from separate production/consumption telemetry when a system has no
-   * net meter — see `toEnergyIntervals`.
+   * (negative `powr` = net export). Used when a system has a single net
+   * (production + consumption combined) meter.
    */
   getRgmStats(systemId: string, startAt: number, endAt: number): Promise<EnphaseRgmStatsResponse> {
     return this.request(`/systems/${systemId}/rgm_stats`, {
@@ -96,9 +80,25 @@ export class EnphaseClient {
       end_at: String(endAt),
     });
   }
+
+  /** 15-min production telemetry — used together with consumption telemetry on systems with separate meters. */
+  getProductionMeterTelemetry(systemId: string, startAt: number, endAt: number): Promise<EnphaseTelemetryResponse> {
+    return this.request(`/systems/${systemId}/telemetry/production_meter`, {
+      start_at: String(startAt),
+      end_at: String(endAt),
+    });
+  }
+
+  /** 15-min consumption telemetry — requires a consumption CT installed on the system. */
+  getConsumptionMeterTelemetry(systemId: string, startAt: number, endAt: number): Promise<EnphaseTelemetryResponse> {
+    return this.request(`/systems/${systemId}/telemetry/consumption_meter`, {
+      start_at: String(startAt),
+      end_at: String(endAt),
+    });
+  }
 }
 
-/** Converts a raw rgm_stats response into the app's normalized EnergyInterval shape. */
+/** Converts a raw rgm_stats response (single net meter) into normalized EnergyInterval shape. */
 export function toEnergyIntervals(response: EnphaseRgmStatsResponse): EnergyInterval[] {
   const intervals: EnergyInterval[] = [];
   for (const meter of response.meter_intervals) {
@@ -109,12 +109,68 @@ export function toEnergyIntervals(response: EnphaseRgmStatsResponse): EnergyInte
       intervals.push({
         timestamp: new Date(point.end_at * 1000).toISOString(),
         durationHours: 0.25,
-        productionKwh: 0, // populate from a paired production_meter call when available
-        consumptionKwh: 0, // populate from a paired consumption_meter call when available
+        productionKwh: 0,
+        consumptionKwh: 0,
         gridImportKwh: importKwh,
         gridExportKwh: exportKwh,
       });
     }
   }
   return intervals;
+}
+
+/**
+ * Zips separate production and consumption telemetry (systems with two
+ * meters) into full EnergyInterval[], deriving grid import/export as the
+ * difference between the two. Points are matched by `end_at`; a timestamp
+ * present in only one series is skipped rather than guessed.
+ */
+export function mergeProductionConsumption(
+  production: EnphaseTelemetryResponse,
+  consumption: EnphaseTelemetryResponse
+): EnergyInterval[] {
+  const consumptionByTime = new Map(consumption.intervals.map((p) => [p.end_at, p]));
+  const intervals: EnergyInterval[] = [];
+
+  for (const prod of production.intervals) {
+    const cons = consumptionByTime.get(prod.end_at);
+    if (!cons) continue;
+
+    const productionKwh = prod.enwh / 1000;
+    const consumptionKwh = cons.enwh / 1000;
+
+    intervals.push({
+      timestamp: new Date(prod.end_at * 1000).toISOString(),
+      durationHours: 0.25,
+      productionKwh,
+      consumptionKwh,
+      gridImportKwh: Math.max(0, consumptionKwh - productionKwh),
+      gridExportKwh: Math.max(0, productionKwh - consumptionKwh),
+    });
+  }
+
+  return intervals.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+}
+
+/**
+ * Fetches one time range as normalized EnergyInterval[], preferring the
+ * separate production+consumption meters (full detail) and falling back to
+ * the combined net (rgm_stats) meter for systems without a consumption CT.
+ */
+export async function fetchEnergyIntervals(
+  client: EnphaseClient,
+  systemId: string,
+  startAt: number,
+  endAt: number
+): Promise<EnergyInterval[]> {
+  try {
+    const [production, consumption] = await Promise.all([
+      client.getProductionMeterTelemetry(systemId, startAt, endAt),
+      client.getConsumptionMeterTelemetry(systemId, startAt, endAt),
+    ]);
+    return mergeProductionConsumption(production, consumption);
+  } catch {
+    const rgm = await client.getRgmStats(systemId, startAt, endAt);
+    return toEnergyIntervals(rgm);
+  }
 }

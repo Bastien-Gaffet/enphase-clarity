@@ -65,21 +65,48 @@ compte Enphase.
 
 1. Crée une app sur [developer-v4.enphase.com](https://developer-v4.enphase.com)
    pour obtenir une clé API, un `client_id` et un `client_secret`.
-2. Récupère un jeton d'accès via le flux OAuth2 (autorisation navigateur),
-   puis renseigne-le avec le `system_id` de ton installation dans
-   **Réglages → Connexion Enphase Enlighten**.
-3. Bascule la source de données sur **Enphase en direct**.
+2. Dans **Réglages**, bascule la source de données sur **Enphase en direct**,
+   renseigne la clé API / Client ID / Client Secret, puis ajoute l'URI de
+   redirection affichée à l'écran dans les paramètres de ton app Enphase.
+3. Appuie sur **Se connecter à Enphase** — ça ouvre le navigateur pour te
+   connecter à ton compte Enlighten, puis échange automatiquement le code
+   d'autorisation contre un jeton d'accès (stocké et renouvelé tout seul
+   ensuite). Choisis ton installation dans la liste qui apparaît.
 
-Les noms de champs de l'API v4 (`rgm_stats`, `summary`, …) suivent la
-documentation publique Enphase — à vérifier contre les réponses réelles de
-ton système, Enphase ayant fait évoluer ces formats par le passé.
+> Le flux OAuth2 échange le `client_secret` directement depuis l'app — un
+> compromis acceptable pour un usage personnel sur ton propre système, mais
+> pas pour une app distribuée à d'autres utilisateurs (l'échange devrait
+> alors passer par un petit serveur qui garde le secret côté back-end).
+
+Une fois connecté, l'historique se synchronise progressivement en arrière-plan
+(depuis la date de mise en service, par lots de 14 jours pour rester sous les
+limites de débit de l'API) — l'écran Économies passe automatiquement de
+l'estimation à l'historique réel une fois les premiers jours récupérés.
+
+Les noms de champs de l'API v4 (`rgm_stats`, `telemetry/production_meter`,
+`telemetry/consumption_meter`, …) suivent la documentation publique Enphase —
+à vérifier contre les réponses réelles de ton système, Enphase ayant fait
+évoluer ces formats par le passé.
+
+## Tests
+
+```bash
+npm test
+```
+
+Le moteur de calcul (`lib/calculations`) et l'agrégation d'historique
+(`lib/enphase/history.ts`) sont couverts par des tests unitaires Jest —
+tarifs HP/HC (dont le passage à minuit), amortissement, optimiseur de charge
+VE, et cohérence du cumul par jour avec le calcul direct sur les intervalles.
 
 ## Limites connues / pistes
 
-- L'écran Économies extrapole l'amortissement à partir du rythme
-  d'économie actuel (pas encore d'historique multi-jours en mode direct).
-- Le flux OAuth2 (échange du code d'autorisation) est à finaliser côté
-  client — le rafraîchissement de jeton est déjà géré une fois le premier
-  jeton obtenu.
+- Le cumul historique applique le tarif *actuel* rétroactivement (le détail
+  HP/HC de chaque jour est conservé, mais pas l'évolution du prix du kWh
+  dans le temps).
+- La synchro d'historique suppose que `production_meter` et
+  `consumption_meter` existent tous les deux ; sur une installation avec un
+  seul compteur net, elle retombe sur `rgm_stats` (production/consommation
+  détaillées non disponibles, seul l'import/export réseau l'est).
 - Notifications push (ex. "commence à charger la voiture maintenant") non
   implémentées.

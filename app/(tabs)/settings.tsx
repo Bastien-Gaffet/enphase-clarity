@@ -1,13 +1,22 @@
 import React, { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
 import { useTheme } from "@/theme/useTheme";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { useCredentialsStore } from "@/store/useCredentialsStore";
+import { EnphaseClient } from "@/lib/enphase/client";
+import { buildAuthorizeUrl, exchangeAuthorizationCode, extractAuthorizationCode } from "@/lib/enphase/oauth";
+import type { EnphaseSystem } from "@/lib/enphase/types";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Card } from "@/components/ui/Card";
 import { Segmented } from "@/components/ui/Segmented";
 import { NumberField } from "@/components/ui/NumberField";
 import { TextField } from "@/components/ui/TextField";
+import { Button } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Pill";
+
+WebBrowser.maybeCompleteAuthSession();
 
 function SectionLabel({ children }: { children: string }) {
   const { colors, type, space } = useTheme();
@@ -35,6 +44,63 @@ export default function SettingsScreen() {
   const [apiKey, setApiKey] = useState(credentials?.apiKey ?? "");
   const [clientId, setClientId] = useState(credentials?.clientId ?? "");
   const [clientSecret, setClientSecret] = useState(credentials?.clientSecret ?? "");
+  const [connecting, setConnecting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [systems, setSystems] = useState<EnphaseSystem[]>([]);
+  const [loadingSystems, setLoadingSystems] = useState(false);
+
+  const isConnected = Boolean(credentials?.accessToken);
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: "enphaseclarity" });
+
+  async function connectToEnphase() {
+    setAuthError(null);
+    if (!clientId || !clientSecret) {
+      setAuthError("Renseigne Client ID et Client Secret avant de te connecter.");
+      return;
+    }
+    setConnecting(true);
+    try {
+      const authUrl = buildAuthorizeUrl(clientId, redirectUri);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+
+      if (result.type !== "success" || !("url" in result)) {
+        setConnecting(false);
+        return;
+      }
+
+      const code = extractAuthorizationCode(result.url);
+      if (!code) {
+        setAuthError("Aucun code d'autorisation reçu — connexion annulée ou refusée.");
+        setConnecting(false);
+        return;
+      }
+
+      const token = await exchangeAuthorizationCode(clientId, clientSecret, redirectUri, code);
+      const nextCreds = {
+        apiKey,
+        clientId,
+        clientSecret,
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        expiresAt: token.expiresAt,
+        systemId: enphaseSystemId,
+      };
+      await saveCredentials(nextCreds);
+
+      setLoadingSystems(true);
+      const client = new EnphaseClient(nextCreds, saveCredentials);
+      const { systems: fetchedSystems } = await client.listSystems();
+      setSystems(fetchedSystems);
+      if (!enphaseSystemId && fetchedSystems[0]) {
+        setEnphaseSystemId(String(fetchedSystems[0].system_id));
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Connexion à Enphase impossible.");
+    } finally {
+      setConnecting(false);
+      setLoadingSystems(false);
+    }
+  }
 
   return (
     <ScrollView
@@ -108,45 +174,65 @@ export default function SettingsScreen() {
 
       {dataSource === "live" ? (
         <Card style={{ gap: space.lg }}>
-          <SectionLabel>Connexion Enphase Enlighten</SectionLabel>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <SectionLabel>Connexion Enphase Enlighten</SectionLabel>
+            <Pill label={isConnected ? "Connecté" : "Non connecté"} tone={isConnected ? "good" : "neutral"} />
+          </View>
           <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-            Identifiants issus de ton compte développeur sur developer-v4.enphase.com. Stockés uniquement
-            sur cet appareil (Secure Store).
+            Clé API, Client ID et Client Secret viennent de ton app sur developer-v4.enphase.com. Stockés
+            uniquement sur cet appareil.
           </Text>
           <TextField label="Clé API" value={apiKey} onChangeText={setApiKey} placeholder="api_key" />
           <TextField label="Client ID" value={clientId} onChangeText={setClientId} placeholder="client_id" />
           <TextField label="Client Secret" value={clientSecret} onChangeText={setClientSecret} secure placeholder="client_secret" />
-          <TextField label="System ID" value={enphaseSystemId} onChangeText={setEnphaseSystemId} placeholder="123456" />
+
           <View>
-            <Text
-              onPress={() =>
-                saveCredentials({
-                  apiKey,
-                  clientId,
-                  clientSecret,
-                  accessToken: credentials?.accessToken ?? "",
-                  refreshToken: credentials?.refreshToken ?? "",
-                  expiresAt: credentials?.expiresAt ?? 0,
-                  systemId: enphaseSystemId,
-                })
-              }
-              style={{
-                color: colors.page,
-                backgroundColor: colors.textPrimary,
-                textAlign: "center",
-                paddingVertical: space.md,
-                borderRadius: 12,
-                fontWeight: "700",
-                overflow: "hidden",
-              }}
-            >
-              Enregistrer les identifiants
+            <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: space.xs }}>
+              Ajoute cette URI de redirection dans les réglages de ton app Enphase :
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "monospace" }} selectable>
+              {redirectUri}
             </Text>
           </View>
+
+          <Button
+            label={isConnected ? "Se reconnecter à Enphase" : "Se connecter à Enphase"}
+            onPress={connectToEnphase}
+            loading={connecting}
+          />
+
+          {authError ? <Text style={{ color: colors.status.critical, fontSize: 13 }}>{authError}</Text> : null}
+
+          {systems.length > 0 ? (
+            <View style={{ gap: space.sm }}>
+              <Text style={[{ color: colors.textMuted, fontSize: 12, fontWeight: "600", letterSpacing: 0.4 }]}>
+                INSTALLATION
+              </Text>
+              {systems.map((sys) => {
+                const selected = String(sys.system_id) === enphaseSystemId;
+                return (
+                  <Text
+                    key={sys.system_id}
+                    onPress={() => setEnphaseSystemId(String(sys.system_id))}
+                    style={{
+                      color: selected ? colors.textPrimary : colors.textSecondary,
+                      fontWeight: selected ? "700" : "400",
+                      paddingVertical: space.xs,
+                    }}
+                  >
+                    {selected ? "● " : "○ "}
+                    {sys.name} ({sys.system_id})
+                  </Text>
+                );
+              })}
+            </View>
+          ) : (
+            <TextField label="System ID" value={enphaseSystemId} onChangeText={setEnphaseSystemId} placeholder="123456" />
+          )}
+
           <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-            La connexion OAuth (échange du code d'autorisation contre un jeton) doit être finalisée une
-            première fois via le flux navigateur d'Enphase — le jeton et son renouvellement sont ensuite
-            gérés automatiquement par l'app.
+            Le jeton d'accès est renouvelé automatiquement en arrière-plan. Recommence la connexion
+            uniquement si l'accès a été révoqué côté Enphase.
           </Text>
         </Card>
       ) : null}
