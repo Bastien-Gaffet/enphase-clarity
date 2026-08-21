@@ -21,8 +21,25 @@ réseau, heures creuses/pleines, etc.) et reste identique sur tous les écrans.
 - **Simulation** — scénarios "et si" : puissance de panneaux, kilométrage
   quotidien du véhicule, impact sur le solde mensuel et l'amortissement.
 - **Réglages** — contrat d'électricité (prix HP/HC, abonnement, rachat de
-  surplus), coût de l'installation (comptant ou financé), identifiants
-  Enphase.
+  surplus), **plages heures creuses multiples** (les contrats français en
+  ont souvent deux : un bloc de nuit et un créneau de midi), coût de
+  l'installation (comptant ou financé), identifiants Enphase.
+
+## Identité visuelle
+
+Marque construite autour d'un éclair frappant un panneau solaire en
+perspective, sur une échelle bleu nuit :
+
+| Rôle | Couleur |
+|---|---|
+| Fond | `#06070E` |
+| Accent (boutons, curseurs, réseau) | `#3685B5` |
+| Highlight (icône active, chiffres clés) | `#A8F9FF` |
+
+Le logo est un composant SVG (`components/brand/Logo.tsx`) dont les lignes
+de grille et le contour de l'éclair se peignent dans la couleur du fond, ce
+qui le garde net sur n'importe quelle surface. Les icônes d'application, le
+splash et le favicon sont générés depuis ce même tracé.
 
 ## Stack technique
 

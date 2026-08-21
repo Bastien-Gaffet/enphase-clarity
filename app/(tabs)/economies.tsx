@@ -1,23 +1,23 @@
 import React, { useMemo } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useEnergyStore } from "@/store/useEnergyStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { useHistoryStore } from "@/store/useHistoryStore";
 import { computeSavings } from "@/lib/calculations/tariff";
 import { computeSavingsFromRollups } from "@/lib/enphase/history";
-import { computePaybackProgress } from "@/lib/calculations/payback";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { computePaybackProgress, netMonthlyCashFlow } from "@/lib/calculations/payback";
+import { Screen } from "@/components/ui/Screen";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Pill } from "@/components/ui/Pill";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatTile } from "@/components/charts/StatTile";
-import { HourlyBarChart } from "@/components/charts/HourlyBarChart";
-import { Legend } from "@/components/charts/Legend";
+import { SplitBar } from "@/components/charts/SplitBar";
 
 function monthsToText(months: number | null): string {
   if (months === null) return "—";
-  if (months <= 0) return "atteint";
+  if (months <= 0) return "maintenant";
   const years = Math.floor(months / 12);
   const rest = months % 12;
   if (years === 0) return `${rest} mois`;
@@ -25,7 +25,7 @@ function monthsToText(months: number | null): string {
 }
 
 export default function EconomiesScreen() {
-  const { colors, space } = useTheme();
+  const { colors, type, space } = useTheme();
   const todayIntervals = useEnergyStore((s) => s.todayIntervals);
   const { tariff, investment, dataSource } = useSettingsStore();
   const { rollups, hasMore, loading: historyLoading } = useHistoryStore();
@@ -73,25 +73,21 @@ export default function EconomiesScreen() {
     [investment, cumulativeSavingsEUR, avgMonthlySavingsEUR]
   );
 
-  const hpHcBars = [
-    { hour: 0, value: todaySavings.heuresPleinesKwh, color: colors.energy.heuresPleines, highlighted: true },
-    { hour: 1, value: todaySavings.heuresCreusesKwh, color: colors.energy.heuresCreuses, highlighted: true },
-  ];
+  const cashFlow = netMonthlyCashFlow(investment, avgMonthlySavingsEUR);
+  const isFinanced = investment.monthlyPaymentEUR > 0;
+
+  const hpKwh = todaySavings.heuresPleinesKwh;
+  const hcKwh = todaySavings.heuresCreusesKwh;
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.page }}
-      contentContainerStyle={{ padding: space.lg, paddingTop: space.xxl, gap: space.lg }}
-    >
-      <ScreenHeader title="Économies" subtitle="Amortissement de l'installation solaire" />
-
+    <Screen title="Économies" subtitle="Ce que tes panneaux te rapportent">
       {dataSource === "live" ? (
         <Pill
           label={
             hasRealHistory
               ? `Historique réel · ${rollupList.length} j${hasMore || historyLoading ? " · sync…" : ""}`
               : historyLoading
-              ? "Synchronisation de l'historique…"
+              ? "Synchronisation…"
               : "En attente de données"
           }
           tone={hasRealHistory ? "good" : "neutral"}
@@ -99,61 +95,102 @@ export default function EconomiesScreen() {
       ) : null}
 
       <Card>
-        <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "600", letterSpacing: 0.4 }}>
-          AMORTISSEMENT
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: space.sm }}>
-          <Text style={[{ color: colors.textPrimary, fontSize: 32, fontWeight: "700" }]}>
+        <SectionLabel>Amortissement</SectionLabel>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: space.sm }}>
+          <Text
+            style={{ color: colors.textPrimary, fontSize: 34, fontWeight: "700" }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {Math.round(payback.percentComplete * 100)}%
           </Text>
-          <Text style={{ color: colors.textSecondary, marginLeft: space.sm }}>
-            {payback.cumulativeSavingsEUR.toFixed(0)} € / {payback.totalInvestmentEUR.toFixed(0)} €
+          <Text style={[type.body, { color: colors.textSecondary, flexShrink: 1 }]} numberOfLines={1}>
+            {payback.cumulativeSavingsEUR.toFixed(0)} € sur {payback.totalInvestmentEUR.toFixed(0)} €
           </Text>
         </View>
+
         <View style={{ marginTop: space.md }}>
           <ProgressBar progress={payback.percentComplete} color={colors.status.good} />
         </View>
-        <Text style={{ color: colors.textSecondary, marginTop: space.md }}>
+
+        <Text style={[type.body, { color: colors.textSecondary, marginTop: space.md }]}>
           {payback.percentComplete >= 1
-            ? "Panneaux amortis 🎉"
-            : `Reste ${payback.amountRemainingEUR.toFixed(0)} € — estimé dans ${monthsToText(
+            ? "Installation amortie — tout ce qui suit est du gain net."
+            : `Reste ${payback.amountRemainingEUR.toFixed(0)} € · amorti dans ${monthsToText(
                 payback.estimatedMonthsRemaining
               )}`}
         </Text>
-        <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: space.xs }}>
+        <Text style={[type.caption, { color: colors.textMuted, marginTop: space.xs }]}>
           {hasRealHistory
-            ? "Calculé sur l'historique réel de production/consommation, au tarif actuel."
-            : "Estimation à partir du rythme d'économie du jour — se précise avec l'historique réel."}
+            ? "Calculé sur ton historique réel, au tarif actuel."
+            : "Estimé depuis le rythme du jour — se précise avec l'historique réel."}
         </Text>
       </Card>
 
       <Card>
+        <SectionLabel>Rythme</SectionLabel>
         <View style={{ flexDirection: "row", gap: space.lg }}>
-          <StatTile label="Ce mois-ci" value={monthToDateEUR.toFixed(0)} unit="€" color={colors.status.good} />
           <StatTile
-            label="Revente surplus"
-            value={todaySavings.exportRevenueEUR.toFixed(2)}
+            label="Ce mois-ci"
+            value={monthToDateEUR.toFixed(0)}
             unit="€"
-            color={colors.energy.surplus}
-            caption="aujourd'hui"
+            color={colors.status.good}
+          />
+          <StatTile
+            label="Moyenne mensuelle"
+            value={avgMonthlySavingsEUR.toFixed(0)}
+            unit="€"
+            caption="sur les 30 derniers jours"
           />
         </View>
       </Card>
 
+      {isFinanced ? (
+        <Card>
+          <SectionLabel>Trésorerie mensuelle</SectionLabel>
+          <View style={{ flexDirection: "row", gap: space.lg }}>
+            <StatTile
+              label="Mensualité"
+              value={`-${investment.monthlyPaymentEUR.toFixed(0)}`}
+              unit="€"
+              color={colors.status.critical}
+            />
+            <StatTile
+              label="Solde net"
+              value={`${cashFlow >= 0 ? "+" : ""}${cashFlow.toFixed(0)}`}
+              unit="€"
+              color={cashFlow >= 0 ? colors.status.good : colors.status.warning}
+              caption={cashFlow >= 0 ? "les panneaux paient leur crédit" : "reste à ta charge chaque mois"}
+            />
+          </View>
+        </Card>
+      ) : null}
+
       <Card>
-        <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "600", letterSpacing: 0.4 }}>
-          HEURES CREUSES / PLEINES — AUJOURD'HUI
-        </Text>
-        <View style={{ marginTop: space.md, alignItems: "center" }}>
-          <HourlyBarChart data={hpHcBars} width={160} height={100} barGap={24} />
-        </View>
-        <Legend
-          items={[
-            { label: `Heures pleines · ${todaySavings.heuresPleinesKwh.toFixed(1)} kWh`, color: colors.energy.heuresPleines },
-            { label: `Heures creuses · ${todaySavings.heuresCreusesKwh.toFixed(1)} kWh`, color: colors.energy.heuresCreuses },
+        <SectionLabel>Réseau aujourd'hui</SectionLabel>
+        <SplitBar
+          segments={[
+            { label: "Heures pleines", value: hpKwh, color: colors.energy.heuresPleines },
+            { label: "Heures creuses", value: hcKwh, color: colors.energy.heuresCreuses },
           ]}
+          unit="kWh"
         />
+        <View style={{ flexDirection: "row", gap: space.lg, marginTop: space.lg }}>
+          <StatTile
+            label="Acheté au réseau"
+            value={todaySavings.gridCostEUR.toFixed(2)}
+            unit="€"
+            color={colors.energy.grid}
+          />
+          <StatTile
+            label="Surplus revendu"
+            value={todaySavings.exportRevenueEUR.toFixed(2)}
+            unit="€"
+            color={colors.energy.surplus}
+            caption={`${todaySavings.exportedKwh.toFixed(1)} kWh exportés`}
+          />
+        </View>
       </Card>
-    </ScrollView>
+    </Screen>
   );
 }

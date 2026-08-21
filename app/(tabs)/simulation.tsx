@@ -1,21 +1,23 @@
 import React, { useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { computeSavings } from "@/lib/calculations/tariff";
 import { computePaybackProgress } from "@/lib/calculations/payback";
 import { simulateEvCharging } from "@/lib/calculations/evCharging";
 import { generateMockDay, forecastSolarSurplusByHour } from "@/lib/enphase/mock";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Screen } from "@/components/ui/Screen";
 import { Card } from "@/components/ui/Card";
 import { SliderField } from "@/components/ui/SliderField";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatTile } from "@/components/charts/StatTile";
+import { SplitBar } from "@/components/charts/SplitBar";
 
 const KWH_PER_KM = 0.18;
 
 function monthsToText(months: number | null): string {
   if (months === null) return "—";
-  if (months <= 0) return "atteint";
+  if (months <= 0) return "déjà amorti";
   const years = Math.floor(months / 12);
   const rest = months % 12;
   if (years === 0) return `${rest} mois`;
@@ -23,18 +25,19 @@ function monthsToText(months: number | null): string {
 }
 
 export default function SimulationScreen() {
-  const { colors, space } = useTheme();
+  const { colors, type, space } = useTheme();
   const { tariff, investment, mockSite, evCharger } = useSettingsStore();
 
   const [simPanelKwp, setSimPanelKwp] = useState(mockSite.panelKwp);
   const [simDailyKm, setSimDailyKm] = useState(30);
 
-  const simSite = { ...mockSite, panelKwp: simPanelKwp };
+  const simSite = useMemo(() => ({ ...mockSite, panelKwp: simPanelKwp }), [mockSite, simPanelKwp]);
 
+  // A fixed reference day keeps the comparison stable while sliders move.
   const daySavings = useMemo(() => {
     const intervals = generateMockDay(new Date(2026, 5, 21), simSite);
     return computeSavings(intervals, tariff);
-  }, [simPanelKwp, tariff]);
+  }, [simSite, tariff]);
 
   const evDailyKwh = simDailyKm * KWH_PER_KM;
 
@@ -48,10 +51,11 @@ export default function SimulationScreen() {
       tariff,
       solarSurplusByHour,
     });
-  }, [simPanelKwp, evDailyKwh, evCharger, tariff]);
+  }, [simSite, evDailyKwh, evCharger, tariff]);
 
   const monthlySolarSavingsEUR = daySavings.totalSavingsEUR * 30.4;
   const monthlyEvCostEUR = evPlan.totalCostEUR * 30.4;
+  const monthlyEvNaiveEUR = evPlan.naiveCostEUR * 30.4;
   const netMonthlyEUR = monthlySolarSavingsEUR - monthlyEvCostEUR;
 
   const payback = useMemo(
@@ -60,13 +64,9 @@ export default function SimulationScreen() {
   );
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.page }}
-      contentContainerStyle={{ padding: space.lg, paddingTop: space.xxl, gap: space.lg }}
-    >
-      <ScreenHeader title="Simulation" subtitle="Teste des scénarios avant de décider" />
-
+    <Screen title="Simulation" subtitle="Teste un scénario avant de décider">
       <Card style={{ gap: space.lg }}>
+        <SectionLabel>Hypothèses</SectionLabel>
         <SliderField
           label="Puissance des panneaux"
           value={simPanelKwp}
@@ -77,7 +77,7 @@ export default function SimulationScreen() {
           formatValue={(v) => `${v.toFixed(1)} kWc`}
         />
         <SliderField
-          label="Trajet quotidien du véhicule"
+          label="Trajet quotidien"
           value={simDailyKm}
           minimumValue={0}
           maximumValue={150}
@@ -85,45 +85,74 @@ export default function SimulationScreen() {
           onValueChange={setSimDailyKm}
           formatValue={(v) => `${v} km/j`}
         />
+        <Text style={[type.caption, { color: colors.textMuted }]}>
+          Consommation estimée du véhicule : {KWH_PER_KM} kWh/km, soit {evDailyKwh.toFixed(1)} kWh par
+          jour.
+        </Text>
       </Card>
 
       <Card>
-        <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "600", letterSpacing: 0.4 }}>
-          PROJECTION MENSUELLE
-        </Text>
-        <View style={{ flexDirection: "row", gap: space.lg, marginTop: space.md }}>
-          <StatTile
-            label="Économie solaire"
-            value={monthlySolarSavingsEUR.toFixed(0)}
+        <SectionLabel>Solde mensuel</SectionLabel>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: space.sm }}>
+          <Text
+            style={{
+              color: netMonthlyEUR >= 0 ? colors.status.good : colors.status.critical,
+              fontSize: 34,
+              fontWeight: "700",
+            }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
+            {netMonthlyEUR >= 0 ? "+" : ""}
+            {netMonthlyEUR.toFixed(0)} €
+          </Text>
+          <Text style={[type.body, { color: colors.textSecondary, flexShrink: 1 }]}>par mois</Text>
+        </View>
+
+        <View style={{ marginTop: space.lg }}>
+          <SplitBar
+            segments={[
+              { label: "Économie solaire", value: monthlySolarSavingsEUR, color: colors.status.good },
+              { label: "Coût charge véhicule", value: monthlyEvCostEUR, color: colors.energy.evCharging },
+            ]}
             unit="€"
-            color={colors.status.good}
           />
+        </View>
+      </Card>
+
+      <Card>
+        <SectionLabel>Charge du véhicule</SectionLabel>
+        <View style={{ flexDirection: "row", gap: space.lg }}>
           <StatTile
-            label="Coût charge VE"
+            label="Charge optimisée"
             value={monthlyEvCostEUR.toFixed(0)}
             unit="€"
-            color={colors.energy.evCharging}
+            color={colors.status.good}
+            caption="par mois"
           />
-        </View>
-        <View style={{ marginTop: space.lg }}>
           <StatTile
-            label="Solde net mensuel"
-            value={netMonthlyEUR.toFixed(0)}
+            label="Sans optimisation"
+            value={monthlyEvNaiveEUR.toFixed(0)}
             unit="€"
-            color={netMonthlyEUR >= 0 ? colors.status.good : colors.status.critical}
+            color={colors.status.warning}
+            caption={`soit ${(monthlyEvNaiveEUR - monthlyEvCostEUR).toFixed(0)} € de plus`}
           />
         </View>
       </Card>
 
       <Card>
-        <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "600", letterSpacing: 0.4 }}>
-          AMORTISSEMENT PROJETÉ
+        <SectionLabel>Amortissement dans ce scénario</SectionLabel>
+        <Text style={[type.h2, { color: colors.textPrimary }]}>
+          {monthsToText(payback.estimatedMonthsRemaining)}
         </Text>
-        <Text style={{ color: colors.textPrimary, marginTop: space.sm, fontSize: 16 }}>
-          {investment.totalPriceEUR.toFixed(0)} € investis · remboursés en{" "}
-          {monthsToText(payback.estimatedMonthsRemaining)} à ce rythme
+        <Text style={[type.body, { color: colors.textSecondary, marginTop: space.xs }]}>
+          Pour {investment.totalPriceEUR.toFixed(0)} € investis, à {monthlySolarSavingsEUR.toFixed(0)} €
+          d'économie par mois.
+        </Text>
+        <Text style={[type.caption, { color: colors.textMuted, marginTop: space.sm }]}>
+          Projection sur une journée type ensoleillée — la moyenne réelle sur l'année sera plus basse.
         </Text>
       </Card>
-    </ScrollView>
+    </Screen>
   );
 }
