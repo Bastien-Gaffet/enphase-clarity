@@ -1,27 +1,36 @@
 import React, { useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
-import { useTheme } from "@/theme/useTheme";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { useCredentialsStore } from "@/store/useCredentialsStore";
 import { EnphaseClient } from "@/lib/enphase/client";
 import { buildAuthorizeUrl, exchangeAuthorizationCode, extractAuthorizationCode } from "@/lib/enphase/oauth";
 import type { EnphaseSystem } from "@/lib/enphase/types";
-import { Screen } from "@/components/ui/Screen";
-import { Card } from "@/components/ui/Card";
-import { Segmented } from "@/components/ui/Segmented";
-import { NumberField } from "@/components/ui/NumberField";
-import { TextField } from "@/components/ui/TextField";
-import { Button } from "@/components/ui/Button";
-import { Pill } from "@/components/ui/Pill";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import { TouWindowsEditor } from "@/components/ui/TouWindowsEditor";
+import { Screen } from "@/components/core/Screen";
+import { Surface } from "@/components/core/Surface";
+import { Txt } from "@/components/core/Txt";
+import { Chip, SectionHeader } from "@/components/core/Blocks";
+import { Icon } from "@/components/core/Icon";
+import { Button, NumberField, Segmented, TextField } from "@/components/core/Controls";
+import { TouWindowsEditor } from "@/components/core/TouWindowsEditor";
+import { colors } from "@/theme/colors";
+import { space } from "@/theme/spacing";
 
 WebBrowser.maybeCompleteAuthSession();
 
+/** Two fields on one row, each able to shrink below its content. */
+function Row({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={{ flexDirection: "row", gap: space.md }}>
+      {React.Children.map(children, (child) => (
+        <View style={{ flex: 1, minWidth: 0 }}>{child}</View>
+      ))}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
-  const { colors, type, space } = useTheme();
   const {
     dataSource,
     setDataSource,
@@ -54,8 +63,10 @@ export default function SettingsScreen() {
     }
     setConnecting(true);
     try {
-      const authUrl = buildAuthorizeUrl(clientId, redirectUri);
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      const result = await WebBrowser.openAuthSessionAsync(
+        buildAuthorizeUrl(clientId, redirectUri),
+        redirectUri
+      );
       if (result.type !== "success" || !("url" in result)) {
         setConnecting(false);
         return;
@@ -92,9 +103,9 @@ export default function SettingsScreen() {
   }
 
   return (
-    <Screen title="Réglages" subtitle="Contrat, installation et connexion">
-      <Card style={{ gap: space.sm }}>
-        <SectionLabel>Source de données</SectionLabel>
+    <Screen title="Réglages">
+      <Surface gap={space.md}>
+        <SectionHeader>Source de données</SectionHeader>
         <Segmented
           value={dataSource}
           onChange={setDataSource}
@@ -103,81 +114,72 @@ export default function SettingsScreen() {
             { value: "live", label: "Mes données" },
           ]}
         />
-        <Text style={[type.caption, { color: colors.textMuted }]}>
+        <Txt variant="caption" tone="faint">
           {dataSource === "mock"
-            ? "Données simulées réalistes — pratique pour explorer sans compte Enphase."
+            ? "Données simulées réalistes — pour explorer sans compte Enphase."
             : "Lit ton installation réelle via l'API Enphase Enlighten."}
-        </Text>
-      </Card>
+        </Txt>
+      </Surface>
 
-      <Card style={{ gap: space.lg }}>
-        <SectionLabel>Tarifs du contrat</SectionLabel>
-        <View style={{ flexDirection: "row", gap: space.md }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <NumberField
-              label="Heures pleines"
-              value={tariff.hpPricePerKwh}
-              unit="€/kWh"
-              onChangeValue={(v) => setTariff({ hpPricePerKwh: v })}
-            />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <NumberField
-              label="Heures creuses"
-              value={tariff.hcPricePerKwh}
-              unit="€/kWh"
-              onChangeValue={(v) => setTariff({ hcPricePerKwh: v })}
-            />
-          </View>
-        </View>
-        <NumberField
-          label="Abonnement mensuel"
-          value={tariff.subscriptionMonthlyEUR}
-          unit="€/mois"
-          onChangeValue={(v) => setTariff({ subscriptionMonthlyEUR: v })}
-        />
-        <NumberField
-          label="Rachat du surplus"
-          value={tariff.surplusSellPricePerKwh}
-          unit="€/kWh"
-          onChangeValue={(v) => setTariff({ surplusSellPricePerKwh: v })}
-        />
-      </Card>
+      <Surface gap={space.lg}>
+        <SectionHeader>Tarifs du contrat</SectionHeader>
+        <Row>
+          <NumberField
+            label="Heures pleines"
+            unit="€/kWh"
+            value={tariff.hpPricePerKwh}
+            onChangeValue={(v) => setTariff({ hpPricePerKwh: v })}
+          />
+          <NumberField
+            label="Heures creuses"
+            unit="€/kWh"
+            value={tariff.hcPricePerKwh}
+            onChangeValue={(v) => setTariff({ hcPricePerKwh: v })}
+          />
+        </Row>
+        <Row>
+          <NumberField
+            label="Abonnement"
+            unit="€/mois"
+            value={tariff.subscriptionMonthlyEUR}
+            onChangeValue={(v) => setTariff({ subscriptionMonthlyEUR: v })}
+          />
+          <NumberField
+            label="Rachat surplus"
+            unit="€/kWh"
+            value={tariff.surplusSellPricePerKwh}
+            onChangeValue={(v) => setTariff({ surplusSellPricePerKwh: v })}
+          />
+        </Row>
+      </Surface>
 
-      <Card>
-        <SectionLabel>Plages heures creuses</SectionLabel>
-        <TouWindowsEditor
-          windows={tariff.hcWindows}
-          onChange={(hcWindows) => setTariff({ hcWindows })}
-        />
-      </Card>
+      <Surface gap={space.md}>
+        <SectionHeader>Plages heures creuses</SectionHeader>
+        <TouWindowsEditor windows={tariff.hcWindows} onChange={(hcWindows) => setTariff({ hcWindows })} />
+      </Surface>
 
-      <Card style={{ gap: space.lg }}>
-        <SectionLabel>Installation solaire</SectionLabel>
+      <Surface gap={space.lg}>
+        <SectionHeader>Installation solaire</SectionHeader>
         <NumberField
           label="Prix total"
-          value={investment.totalPriceEUR}
           unit="€"
+          value={investment.totalPriceEUR}
           onChangeValue={(v) => setInvestment({ totalPriceEUR: v })}
         />
-        <View style={{ flexDirection: "row", gap: space.md }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <NumberField
-              label="Mensualité"
-              value={investment.monthlyPaymentEUR}
-              unit="€"
-              onChangeValue={(v) => setInvestment({ monthlyPaymentEUR: v })}
-            />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <NumberField
-              label="Durée du prêt"
-              value={investment.loanTermMonths}
-              unit="mois"
-              onChangeValue={(v) => setInvestment({ loanTermMonths: v })}
-            />
-          </View>
-        </View>
+        <Row>
+          <NumberField
+            label="Mensualité"
+            unit="€"
+            value={investment.monthlyPaymentEUR}
+            onChangeValue={(v) => setInvestment({ monthlyPaymentEUR: v })}
+          />
+          <NumberField
+            label="Durée du prêt"
+            unit="mois"
+            value={investment.loanTermMonths}
+            onChangeValue={(v) => setInvestment({ loanTermMonths: v })}
+          />
+        </Row>
         <TextField
           label="Mise en service"
           value={investment.commissionedOn.slice(0, 10)}
@@ -187,38 +189,44 @@ export default function SettingsScreen() {
           }}
           placeholder="AAAA-MM-JJ"
         />
-      </Card>
+      </Surface>
 
-      <Card style={{ gap: space.lg }}>
-        <SectionLabel>Véhicule électrique</SectionLabel>
-        <View style={{ flexDirection: "row", gap: space.md }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <NumberField
-              label="Puissance"
-              value={evCharger.chargerPowerKw}
-              unit="kW"
-              onChangeValue={(v) => setEvCharger({ chargerPowerKw: v })}
-            />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <NumberField
-              label="Batterie"
-              value={evCharger.batteryCapacityKwh}
-              unit="kWh"
-              onChangeValue={(v) => setEvCharger({ batteryCapacityKwh: v })}
-            />
-          </View>
-        </View>
-      </Card>
+      <Surface gap={space.lg}>
+        <SectionHeader>Véhicule électrique</SectionHeader>
+        <Row>
+          <NumberField
+            label="Puissance"
+            unit="kW"
+            value={evCharger.chargerPowerKw}
+            onChangeValue={(v) => setEvCharger({ chargerPowerKw: v })}
+          />
+          <NumberField
+            label="Batterie"
+            unit="kWh"
+            value={evCharger.batteryCapacityKwh}
+            onChangeValue={(v) => setEvCharger({ batteryCapacityKwh: v })}
+          />
+        </Row>
+      </Surface>
 
       {dataSource === "live" ? (
-        <Card style={{ gap: space.lg }}>
-          <SectionLabel right={<Pill label={isConnected ? "Connecté" : "Non connecté"} tone={isConnected ? "good" : "neutral"} />}>
+        <Surface gap={space.lg}>
+          <SectionHeader
+            right={
+              <Chip
+                label={isConnected ? "Connecté" : "Non connecté"}
+                color={isConnected ? colors.status.good : colors.ink.muted}
+                icon={isConnected ? "checkmark-circle" : "ellipse-outline"}
+              />
+            }
+          >
             Connexion Enphase
-          </SectionLabel>
-          <Text style={[type.caption, { color: colors.textSecondary }]}>
+          </SectionHeader>
+
+          <Txt variant="caption" tone="secondary">
             Identifiants créés sur developer-v4.enphase.com. Stockés uniquement sur cet appareil.
-          </Text>
+          </Txt>
+
           <TextField label="Clé API" value={apiKey} onChangeText={setApiKey} placeholder="api_key" />
           <TextField label="Client ID" value={clientId} onChangeText={setClientId} placeholder="client_id" />
           <TextField
@@ -229,46 +237,56 @@ export default function SettingsScreen() {
             placeholder="client_secret"
           />
 
-          <View>
-            <Text style={[type.caption, { color: colors.textMuted, marginBottom: space.xs }]}>
-              URI de redirection à déclarer côté Enphase :
-            </Text>
-            <Text selectable style={[type.caption, { color: colors.brand.highlight }]}>
+          <View style={{ gap: 4 }}>
+            <Txt variant="overline" tone="muted">
+              URI DE REDIRECTION À DÉCLARER CÔTÉ ENPHASE
+            </Txt>
+            <Txt variant="caption" tone="highlight" selectable>
               {redirectUri}
-            </Text>
+            </Txt>
           </View>
 
           <Button
             label={isConnected ? "Se reconnecter" : "Se connecter à Enphase"}
+            icon="log-in"
             onPress={connectToEnphase}
             loading={connecting}
           />
 
           {authError ? (
-            <Text style={[type.caption, { color: colors.status.critical }]}>{authError}</Text>
+            <Txt variant="caption" tone="critical">
+              {authError}
+            </Txt>
           ) : null}
 
           {systems.length > 0 ? (
             <View style={{ gap: space.sm }}>
-              <SectionLabel>Installation</SectionLabel>
+              <SectionHeader>Installation</SectionHeader>
               {systems.map((sys) => {
                 const selected = String(sys.system_id) === enphaseSystemId;
                 return (
-                  <Text
+                  <Pressable
                     key={sys.system_id}
                     onPress={() => setEnphaseSystemId(String(sys.system_id))}
-                    style={[
-                      type.body,
-                      {
-                        color: selected ? colors.brand.highlight : colors.textSecondary,
-                        fontWeight: selected ? "700" : "400",
-                        paddingVertical: space.xs,
-                      },
-                    ]}
+                    style={{ flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: 6 }}
                   >
-                    {selected ? "● " : "○ "}
-                    {sys.name} ({sys.system_id})
-                  </Text>
+                    <Icon
+                      name={selected ? "radio-button-on" : "radio-button-off"}
+                      size={17}
+                      color={selected ? colors.brand.highlight : colors.ink.faint}
+                    />
+                    <Txt
+                      variant="body"
+                      tone={selected ? "primary" : "secondary"}
+                      numberOfLines={1}
+                      style={{ flex: 1, minWidth: 0 }}
+                    >
+                      {sys.name}
+                    </Txt>
+                    <Txt variant="caption" tone="faint" tabular>
+                      {sys.system_id}
+                    </Txt>
+                  </Pressable>
                 );
               })}
             </View>
@@ -280,7 +298,7 @@ export default function SettingsScreen() {
               placeholder="123456"
             />
           )}
-        </Card>
+        </Surface>
       ) : null}
     </Screen>
   );

@@ -1,18 +1,13 @@
-import { useColorScheme } from "react-native";
-import { tokens } from "./colors";
+import { colors } from "./colors";
 import { type, fontFamily } from "./typography";
-import { space, radius } from "./spacing";
+import { space, radius, gutter, tabBarHeight } from "./spacing";
 
+/**
+ * The theme is a constant now that the app is dark-only, but it stays behind a
+ * hook so call sites keep working unchanged if a light scale is reintroduced.
+ */
 export function useTheme() {
-  const scheme = useColorScheme() === "light" ? "light" : "dark";
-  return {
-    scheme,
-    colors: tokens(scheme),
-    type,
-    fontFamily,
-    space,
-    radius,
-  };
+  return { colors, type, fontFamily, space, radius, gutter, tabBarHeight };
 }
 
 export type Theme = ReturnType<typeof useTheme>;

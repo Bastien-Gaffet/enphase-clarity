@@ -1,6 +1,6 @@
 import React from "react";
 import Svg, { Path, G } from "react-native-svg";
-import { palette } from "../../theme/colors";
+import { brand, colors } from "../../theme/colors";
 
 interface LogoProps {
   size?: number;
@@ -18,9 +18,9 @@ interface LogoProps {
  */
 export function Logo({
   size = 32,
-  background = palette.chrome.dark.page,
-  panelColor = palette.brand.dark.accent,
-  boltColor = palette.brand.dark.highlight,
+  background = colors.page,
+  panelColor = brand.accent,
+  boltColor = brand.highlight,
 }: LogoProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64">

@@ -1,22 +1,30 @@
 import { Link, Stack } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "@/theme/useTheme";
+import { View } from "react-native";
+import { Txt } from "@/components/core/Txt";
+import { colors } from "@/theme/colors";
+import { space } from "@/theme/spacing";
 
 export default function NotFoundScreen() {
-  const { colors, type, space } = useTheme();
   return (
     <>
       <Stack.Screen options={{ title: "Introuvable" }} />
-      <View style={[styles.container, { backgroundColor: colors.page }]}>
-        <Text style={[type.h2, { color: colors.textPrimary }]}>Cet écran n'existe pas.</Text>
-        <Link href="/" style={{ marginTop: space.lg }}>
-          <Text style={[type.body, { color: colors.energy.grid }]}>Retour au tableau de bord</Text>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: space.xl,
+          gap: space.md,
+          backgroundColor: colors.page,
+        }}
+      >
+        <Txt variant="heading">Cet écran n'existe pas.</Txt>
+        <Link href="/">
+          <Txt variant="bodyStrong" tone="highlight">
+            Retour au tableau de bord
+          </Txt>
         </Link>
       </View>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
-});

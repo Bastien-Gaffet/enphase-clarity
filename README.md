@@ -41,31 +41,51 @@ de grille et le contour de l'éclair se peignent dans la couleur du fond, ce
 qui le garde net sur n'importe quelle surface. Les icônes d'application, le
 splash et le favicon sont générés depuis ce même tracé.
 
+**L'app est en mode sombre uniquement** (`userInterfaceStyle: "dark"`). La
+marque est ancrée sur un quasi-noir, et le thème clair était un reliquat de
+neutres chauds qui jurait avec elle : un second thème à moitié tenu vaut
+moins qu'un seul assumé. Les tokens restent séparés (marque / surfaces /
+encres / données), donc une échelle claire peut revenir sans toucher aux
+appels.
+
 ## Stack technique
 
 - [Expo](https://expo.dev) + [Expo Router](https://docs.expo.dev/router/introduction/) (React Native, TypeScript)
 - [Zustand](https://github.com/pmndrs/zustand) pour l'état (réglages
   persistés via AsyncStorage, identifiants Enphase via `expo-secure-store`)
 - Graphiques en SVG natif (`react-native-svg`) — aucune librairie de charts
-  tierce, tracés au pixel près pour un rendu net en clair/sombre
+  tierce, tracés au pixel près
 - Client Enphase Enlighten API v4 (OAuth2 + refresh de jeton) dans
   `lib/enphase/client.ts`
 
 ## Architecture
 
 ```
-app/(tabs)/        écrans (tableau de bord, économies, charge, simulation, réglages)
-theme/              tokens de design (couleurs, typo, espacements)
+app/(tabs)/         écrans (direct, économies, charge, simulation, réglages)
+theme/              tokens : couleurs, échelle typographique, espacements
 lib/calculations/   moteur de calcul pur (tarifs HP/HC, amortissement, charge VE)
 lib/enphase/        client API Enphase + générateur de données de démo
-store/               état applicatif (Zustand)
-components/charts/   primitives graphiques SVG (anneau, sparkline, barres horaires)
-components/ui/       primitives d'interface (carte, champ, slider, segmented control)
+store/              état applicatif (Zustand)
+components/core/    primitives d'interface (Txt, Surface, Hero, champs, contrôles)
+components/viz/     visualisations (flux d'énergie, courbe du jour, jauges)
+components/brand/   le logo
 ```
 
 Le moteur de calcul (`lib/calculations`) est indépendant de l'UI et de la
 source de données : il prend des intervalles d'énergie normalisés en entrée,
-qu'ils viennent de l'API Enphase ou du générateur de démo.
+qu'ils viennent de l'API Enphase ou du générateur de démo. Toute la couche
+visuelle a été réécrite en novembre 2026 sans toucher à ce cœur ni à ses
+tests.
+
+### Principes de mise en page
+
+- **Un héros par écran** : le chiffre qui compte occupe la pleine largeur
+  sans habillage de carte, les détails viennent en cartes en dessous. La
+  première version empilait des cartes de poids identique, ce qui aplatissait
+  tout.
+- **Les graphiques mesurent leur conteneur** (`components/viz/Frame.tsx`) au
+  lieu d'une largeur en dur, qui débordait sur les écrans étroits.
+- **Pas d'emoji** : des icônes vectorielles, rendues identiquement partout.
 
 ## Démarrer
 

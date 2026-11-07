@@ -1,24 +1,24 @@
 import React, { useMemo, useState } from "react";
-import { Text, View } from "react-native";
-import { useTheme } from "@/theme/useTheme";
+import { View } from "react-native";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { simulateEvCharging } from "@/lib/calculations/evCharging";
 import { forecastSolarSurplusByHour } from "@/lib/enphase/mock";
 import { isHeureCreuse } from "@/lib/calculations/tariff";
-import { Screen } from "@/components/ui/Screen";
-import { Card } from "@/components/ui/Card";
-import { SliderField } from "@/components/ui/SliderField";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import { StatTile } from "@/components/charts/StatTile";
-import { HourlyBarChart } from "@/components/charts/HourlyBarChart";
-import { Legend } from "@/components/charts/Legend";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { Screen } from "@/components/core/Screen";
+import { Surface } from "@/components/core/Surface";
+import { Txt } from "@/components/core/Txt";
+import { Hero } from "@/components/core/Hero";
+import { SectionHeader, StatBlock } from "@/components/core/Blocks";
+import { SliderField } from "@/components/core/Controls";
+import { Frame } from "@/components/viz/Frame";
+import { HourStrip } from "@/components/viz/HourStrip";
+import { Legend } from "@/components/viz/Meters";
+import { colors } from "@/theme/colors";
+import { space } from "@/theme/spacing";
 
-function formatHour(h: number): string {
-  return `${String(Math.round(h)).padStart(2, "0")}h`;
-}
+const hourLabel = (h: number) => `${String(Math.round(h)).padStart(2, "0")}h`;
 
-/** "22h → 02h" for a contiguous run of scheduled hours. */
+/** Collapses the scheduled hours into readable ranges: "22h → 02h · 05h → 06h". */
 function describeWindows(hours: number[]): string {
   if (hours.length === 0) return "—";
   const sorted = [...hours].sort((a, b) => a - b);
@@ -32,13 +32,10 @@ function describeWindows(hours: number[]): string {
     }
   }
   runs.push(run);
-  return runs
-    .map((r) => `${formatHour(r[0])} → ${formatHour((r[r.length - 1] + 1) % 24)}`)
-    .join(" · ");
+  return runs.map((r) => `${hourLabel(r[0])} → ${hourLabel((r[r.length - 1] + 1) % 24)}`).join(" · ");
 }
 
 export default function ChargeScreen() {
-  const { colors, type, space } = useTheme();
   const { tariff, mockSite, evCharger } = useSettingsStore();
 
   const [energyNeededKwh, setEnergyNeededKwh] = useState(
@@ -63,96 +60,65 @@ export default function ChargeScreen() {
     [energyNeededKwh, chargerPowerKw, windowStartHour, windowEndHour, tariff, solarSurplusByHour]
   );
 
-  const scheduledHours = useMemo(
-    () => new Set(plan.schedule.map((s) => s.hour)),
-    [plan]
-  );
+  const scheduled = useMemo(() => new Set(plan.schedule.map((s) => s.hour)), [plan]);
 
-  const bars = useMemo(
+  const cells = useMemo(
     () =>
       Array.from({ length: 24 }, (_, hour) => {
         const at = new Date();
         at.setHours(hour, 0, 0, 0);
         const hc = isHeureCreuse(at, tariff);
         const solar = solarSurplusByHour[hour] > 0.05;
-        const color = solar
-          ? colors.energy.production
-          : hc
-          ? colors.energy.heuresCreuses
-          : colors.energy.heuresPleines;
         return {
           hour,
           value: hc ? tariff.hcPricePerKwh : tariff.hpPricePerKwh,
-          color,
-          highlighted: scheduledHours.has(hour),
+          color: solar
+            ? colors.energy.production
+            : hc
+            ? colors.energy.heuresCreuses
+            : colors.energy.heuresPleines,
+          selected: scheduled.has(hour),
         };
       }),
-    [tariff, solarSurplusByHour, scheduledHours, colors]
+    [tariff, solarSurplusByHour, scheduled]
   );
 
-  const totalFromSolarKwh = plan.schedule.reduce((sum, s) => sum + s.fromSolarKwh, 0);
-  const savingsPercent =
-    plan.naiveCostEUR > 0 ? Math.round((plan.savingsEUR / plan.naiveCostEUR) * 100) : 0;
-
+  const fromSolarKwh = plan.schedule.reduce((sum, s) => sum + s.fromSolarKwh, 0);
+  const savingsPct = plan.naiveCostEUR > 0 ? Math.round((plan.savingsEUR / plan.naiveCostEUR) * 100) : 0;
   const notEnoughTime = plan.totalEnergyKwh + 1e-6 < energyNeededKwh;
 
   return (
-    <Screen title="Charge du véhicule" subtitle="Quand charger pour payer le moins cher">
-      <Card style={{ gap: space.md }}>
-        <SectionLabel>Plan recommandé</SectionLabel>
-        <Text style={{ color: colors.brand.highlight, fontSize: 22, fontWeight: "700" }}>
-          {describeWindows(plan.recommendedStartHours)}
-        </Text>
-        <Text style={[type.body, { color: colors.textSecondary }]}>
-          {plan.savingsEUR > 0.005
-            ? `Économise ${plan.savingsEUR.toFixed(2)} € (${savingsPercent} %) par rapport à une charge lancée dès le branchement.`
-            : "Aucune économie possible sur cette plage — le tarif y est constant."}
-        </Text>
-        {notEnoughTime ? (
-          <Text style={[type.caption, { color: colors.status.warning }]}>
-            La plage est trop courte pour charger {energyNeededKwh.toFixed(1)} kWh à{" "}
-            {chargerPowerKw.toFixed(1)} kW — seuls {plan.totalEnergyKwh.toFixed(1)} kWh entreront.
-          </Text>
-        ) : null}
-      </Card>
+    <Screen title="Charge">
+      <Hero
+        label="Économie sur cette charge"
+        value={plan.savingsEUR.toFixed(2)}
+        unit="€"
+        valueColor={plan.savingsEUR > 0.005 ? colors.status.good : colors.ink.faint}
+        caption={
+          plan.savingsEUR > 0.005
+            ? `Soit ${savingsPct} % de moins qu'une charge lancée dès le branchement.`
+            : "Le tarif est constant sur cette plage : rien à gagner à décaler."
+        }
+      >
+        <Surface level="raised" style={{ marginTop: space.md }} gap={4}>
+          <Txt variant="overline" tone="muted">
+            BRANCHER ET LAISSER CHARGER
+          </Txt>
+          <Txt variant="title" color={colors.brand.highlight}>
+            {describeWindows(plan.recommendedStartHours)}
+          </Txt>
+          {notEnoughTime ? (
+            <Txt variant="caption" tone="warning">
+              Plage trop courte pour {energyNeededKwh.toFixed(1)} kWh à {chargerPowerKw.toFixed(1)} kW —
+              seuls {plan.totalEnergyKwh.toFixed(1)} kWh entreront.
+            </Txt>
+          ) : null}
+        </Surface>
+      </Hero>
 
-      <Card>
-        <SectionLabel>Résultat</SectionLabel>
-        <View style={{ flexDirection: "row", gap: space.lg }}>
-          <StatTile
-            label="Coût optimisé"
-            value={plan.totalCostEUR.toFixed(2)}
-            unit="€"
-            color={colors.status.good}
-          />
-          <StatTile
-            label="Sans optimisation"
-            value={plan.naiveCostEUR.toFixed(2)}
-            unit="€"
-            color={colors.status.warning}
-          />
-        </View>
-        <View style={{ flexDirection: "row", gap: space.lg, marginTop: space.lg }}>
-          <StatTile
-            label="Depuis le solaire"
-            value={totalFromSolarKwh.toFixed(1)}
-            unit="kWh"
-            color={colors.energy.production}
-            caption="gratuit, non revendu"
-          />
-          <StatTile
-            label="Énergie chargée"
-            value={plan.totalEnergyKwh.toFixed(1)}
-            unit="kWh"
-          />
-        </View>
-      </Card>
-
-      <Card>
-        <SectionLabel>Coût du kWh heure par heure</SectionLabel>
-        <ChartFrame height={110}>
-          {(width) => <HourlyBarChart data={bars} width={width} height={100} />}
-        </ChartFrame>
+      <Surface gap={space.md}>
+        <SectionHeader>Coût du kWh, heure par heure</SectionHeader>
+        <Frame height={92}>{(width) => <HourStrip data={cells} width={width} />}</Frame>
         <Legend
           items={[
             { label: "Surplus solaire", color: colors.energy.production },
@@ -160,13 +126,41 @@ export default function ChargeScreen() {
             { label: "Heures pleines", color: colors.energy.heuresPleines },
           ]}
         />
-        <Text style={[type.caption, { color: colors.textMuted, marginTop: space.sm }]}>
-          Les barres pleines sont les heures retenues par le plan ; 0h à gauche, 23h à droite.
-        </Text>
-      </Card>
+        <Txt variant="caption" tone="faint">
+          Les barres pleines, soulignées de cyan, sont les heures retenues par le plan.
+        </Txt>
+      </Surface>
 
-      <Card style={{ gap: space.lg }}>
-        <SectionLabel>Paramètres de la charge</SectionLabel>
+      <Surface gap={space.md}>
+        <SectionHeader>Détail</SectionHeader>
+        <View style={{ flexDirection: "row", gap: space.lg }}>
+          <StatBlock
+            label="Coût optimisé"
+            value={plan.totalCostEUR.toFixed(2)}
+            unit="€"
+            color={colors.status.good}
+          />
+          <StatBlock
+            label="Sans rien faire"
+            value={plan.naiveCostEUR.toFixed(2)}
+            unit="€"
+            color={colors.status.warning}
+          />
+        </View>
+        <View style={{ flexDirection: "row", gap: space.lg }}>
+          <StatBlock
+            label="Depuis le solaire"
+            value={fromSolarKwh.toFixed(1)}
+            unit="kWh"
+            color={colors.energy.production}
+            caption="gratuit, non revendu"
+          />
+          <StatBlock label="Énergie chargée" value={plan.totalEnergyKwh.toFixed(1)} unit="kWh" />
+        </View>
+      </Surface>
+
+      <Surface gap={space.lg}>
+        <SectionHeader>Paramètres</SectionHeader>
         <SliderField
           label="Énergie à charger"
           value={energyNeededKwh}
@@ -174,7 +168,7 @@ export default function ChargeScreen() {
           maximumValue={Math.max(1, evCharger.batteryCapacityKwh)}
           step={0.5}
           onValueChange={setEnergyNeededKwh}
-          formatValue={(v) => `${v.toFixed(1)} kWh`}
+          format={(v) => `${v.toFixed(1)} kWh`}
         />
         <SliderField
           label="Puissance de charge"
@@ -183,7 +177,7 @@ export default function ChargeScreen() {
           maximumValue={22}
           step={0.1}
           onValueChange={setChargerPowerKw}
-          formatValue={(v) => `${v.toFixed(1)} kW`}
+          format={(v) => `${v.toFixed(1)} kW`}
         />
         <SliderField
           label="Branché à partir de"
@@ -192,7 +186,7 @@ export default function ChargeScreen() {
           maximumValue={23}
           step={1}
           onValueChange={setWindowStartHour}
-          formatValue={formatHour}
+          format={hourLabel}
         />
         <SliderField
           label="Doit être prêt à"
@@ -201,9 +195,9 @@ export default function ChargeScreen() {
           maximumValue={23}
           step={1}
           onValueChange={setWindowEndHour}
-          formatValue={formatHour}
+          format={hourLabel}
         />
-      </Card>
+      </Surface>
     </Screen>
   );
 }

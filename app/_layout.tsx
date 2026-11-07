@@ -4,12 +4,11 @@ import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/components/useColorScheme";
-import { tokens } from "@/theme/colors";
+import { colors } from "@/theme/colors";
 import { useCredentialsStore } from "@/store/useCredentialsStore";
 import { useEnergyPolling } from "@/hooks/useEnergyPolling";
 import { useHistorySync } from "@/hooks/useHistorySync";
-import { AppErrorBoundary } from "@/components/ui/AppErrorBoundary";
+import { AppErrorBoundary } from "@/components/core/AppErrorBoundary";
 
 export const ErrorBoundary = AppErrorBoundary;
 
@@ -35,14 +34,12 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme() === "light" ? "light" : "dark";
-  const colors = tokens(colorScheme);
   useEnergyPolling(10000);
   useHistorySync();
 
   return (
     <>
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,

@@ -9,8 +9,15 @@ export const space = {
 };
 
 export const radius = {
-  sm: 8,
+  sm: 10,
   md: 14,
   lg: 20,
+  xl: 28,
   pill: 999,
 };
+
+/** Horizontal page gutter — every screen shares it so edges line up. */
+export const gutter = space.lg;
+
+/** Tab bar height excluding the safe-area inset. */
+export const tabBarHeight = 66;
