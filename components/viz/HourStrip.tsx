@@ -1,6 +1,6 @@
 import React from "react";
 import Svg, { Line, Rect, Text as SvgText } from "react-native-svg";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../theme/useTheme";
 
 export interface HourCell {
   hour: number;
@@ -26,6 +26,7 @@ export function HourStrip({
   width: number;
   height?: number;
 }) {
+  const { colors } = useTheme();
   if (data.length === 0) return null;
 
   const plotH = height - AXIS;

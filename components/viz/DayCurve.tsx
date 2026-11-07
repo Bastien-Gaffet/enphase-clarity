@@ -1,6 +1,6 @@
 import React from "react";
 import Svg, { Defs, LinearGradient, Line, Path, Rect, Stop, Text as SvgText, Circle } from "react-native-svg";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../theme/useTheme";
 
 export interface Series {
   values: number[];
@@ -52,6 +52,7 @@ export function DayCurve({
   samplesPerHour = 4,
   daylight = { from: 7, to: 20 },
 }: DayCurveProps) {
+  const { colors } = useTheme();
   const plotH = height - AXIS;
   const slots = 24 * samplesPerHour;
   const peak = Math.max(1e-6, ...series.flatMap((s) => s.values));

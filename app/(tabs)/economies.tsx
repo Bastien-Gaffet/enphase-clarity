@@ -12,8 +12,7 @@ import { Txt } from "@/components/core/Txt";
 import { Hero } from "@/components/core/Hero";
 import { Chip, SectionHeader, StatBlock } from "@/components/core/Blocks";
 import { Meter, SplitMeter } from "@/components/viz/Meters";
-import { colors } from "@/theme/colors";
-import { space } from "@/theme/spacing";
+import { useTheme } from "@/theme/useTheme";
 
 function monthsToText(months: number | null): string {
   if (months === null) return "—";
@@ -25,6 +24,7 @@ function monthsToText(months: number | null): string {
 }
 
 export default function EconomiesScreen() {
+  const { colors, space } = useTheme();
   const todayIntervals = useEnergyStore((s) => s.todayIntervals);
   const { tariff, investment, dataSource } = useSettingsStore();
   const { rollups, hasMore, loading: historyLoading } = useHistoryStore();

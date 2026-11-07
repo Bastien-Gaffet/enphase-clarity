@@ -3,8 +3,7 @@ import { RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Txt } from "./Txt";
 import { Logo } from "../brand/Logo";
-import { colors } from "../../theme/colors";
-import { gutter, space, tabBarHeight } from "../../theme/spacing";
+import { useTheme } from "../../theme/useTheme";
 
 interface ScreenProps {
   title: string;
@@ -18,6 +17,7 @@ interface ScreenProps {
  * the tab bar — without it the last block hides behind the navigation.
  */
 export function Screen({ title, children, onRefresh, refreshing }: ScreenProps) {
+  const { colors, space, gutter, tabBarHeight } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (

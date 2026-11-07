@@ -1,7 +1,6 @@
 import React from "react";
 import { View, ViewProps, ViewStyle } from "react-native";
-import { colors } from "../../theme/colors";
-import { radius, space } from "../../theme/spacing";
+import { useTheme } from "../../theme/useTheme";
 
 type Level = "base" | "raised" | "overlay" | "ghost";
 
@@ -12,13 +11,6 @@ interface SurfaceProps extends ViewProps {
   gap?: number;
   style?: ViewStyle | ViewStyle[];
 }
-
-const FILLS: Record<Level, string | undefined> = {
-  base: colors.base,
-  raised: colors.raised,
-  overlay: colors.overlay,
-  ghost: undefined,
-};
 
 /**
  * The one card primitive. `ghost` carries the padding and rhythm without the
@@ -33,11 +25,20 @@ export function Surface({
   children,
   ...rest
 }: SurfaceProps) {
+  const { colors, radius, space } = useTheme();
+
+  const fills: Record<Level, string | undefined> = {
+    base: colors.base,
+    raised: colors.raised,
+    overlay: colors.overlay,
+    ghost: undefined,
+  };
+
   return (
     <View
       style={[
         {
-          backgroundColor: FILLS[level],
+          backgroundColor: fills[level],
           borderRadius: level === "ghost" ? 0 : radius.lg,
           borderWidth: level === "ghost" ? 0 : 1,
           borderColor: colors.line.edge,

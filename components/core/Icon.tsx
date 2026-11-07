@@ -1,8 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { colors } from "../../theme/colors";
-import { radius } from "../../theme/spacing";
+import { useTheme } from "../../theme/useTheme";
 
 export type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -13,13 +12,14 @@ export type IconName = React.ComponentProps<typeof Ionicons>["name"];
 export function Icon({
   name,
   size = 18,
-  color = colors.ink.secondary,
+  color,
 }: {
   name: IconName;
   size?: number;
   color?: string;
 }) {
-  return <Ionicons name={name} size={size} color={color} />;
+  const { colors } = useTheme();
+  return <Ionicons name={name} size={size} color={color ?? colors.ink.secondary} />;
 }
 
 /** Icon in a tinted round chip — used to mark each row of the energy flow. */
@@ -32,6 +32,7 @@ export function IconBadge({
   color: string;
   size?: number;
 }) {
+  const { radius } = useTheme();
   return (
     <View
       style={{

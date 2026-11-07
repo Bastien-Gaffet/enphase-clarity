@@ -14,13 +14,14 @@ import { Chip, SectionHeader } from "@/components/core/Blocks";
 import { Icon } from "@/components/core/Icon";
 import { Button, NumberField, Segmented, TextField } from "@/components/core/Controls";
 import { TouWindowsEditor } from "@/components/core/TouWindowsEditor";
-import { colors } from "@/theme/colors";
-import { space } from "@/theme/spacing";
+import { useTheme } from "@/theme/useTheme";
 
 WebBrowser.maybeCompleteAuthSession();
 
 /** Two fields on one row, each able to shrink below its content. */
 function Row({ children }: { children: React.ReactNode }) {
+  const { space } = useTheme();
+
   return (
     <View style={{ flexDirection: "row", gap: space.md }}>
       {React.Children.map(children, (child) => (
@@ -31,9 +32,12 @@ function Row({ children }: { children: React.ReactNode }) {
 }
 
 export default function SettingsScreen() {
+  const { colors, space } = useTheme();
   const {
     dataSource,
     setDataSource,
+    themePreference,
+    setThemePreference,
     tariff,
     setTariff,
     investment,
@@ -118,6 +122,22 @@ export default function SettingsScreen() {
           {dataSource === "mock"
             ? "Données simulées réalistes — pour explorer sans compte Enphase."
             : "Lit ton installation réelle via l'API Enphase Enlighten."}
+        </Txt>
+      </Surface>
+
+      <Surface gap={space.md}>
+        <SectionHeader>Apparence</SectionHeader>
+        <Segmented
+          value={themePreference}
+          onChange={setThemePreference}
+          options={[
+            { value: "system", label: "Système" },
+            { value: "light", label: "Clair" },
+            { value: "dark", label: "Sombre" },
+          ]}
+        />
+        <Txt variant="caption" tone="faint">
+          « Système » suit le réglage de ton téléphone.
         </Txt>
       </Surface>
 

@@ -5,8 +5,7 @@ import { Icon } from "./Icon";
 import { Button } from "./Controls";
 import type { TouWindow } from "../../lib/calculations/types";
 import { normaliseHhMm, totalHoursPerDay, validateWindows } from "../../lib/calculations/touWindows";
-import { colors } from "../../theme/colors";
-import { radius, space } from "../../theme/spacing";
+import { useTheme } from "../../theme/useTheme";
 
 function TimeBox({
   value,
@@ -19,6 +18,8 @@ function TimeBox({
   onBlur: () => void;
   invalid: boolean;
 }) {
+  const { colors, radius, space } = useTheme();
+
   return (
     <TextInput
       value={value}
@@ -59,6 +60,7 @@ export function TouWindowsEditor({
   windows: TouWindow[];
   onChange: (windows: TouWindow[]) => void;
 }) {
+  const { colors, space } = useTheme();
   const issues = validateWindows(windows);
   const issueFor = (index: number) => issues.find((i) => i.index === index)?.message;
   const hoursPerDay = totalHoursPerDay(windows);

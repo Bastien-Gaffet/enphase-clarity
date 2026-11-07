@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { colors } from "@/theme/colors";
+import { useTheme } from "@/theme/useTheme";
 import { useCredentialsStore } from "@/store/useCredentialsStore";
 import { useEnergyPolling } from "@/hooks/useEnergyPolling";
 import { useHistorySync } from "@/hooks/useHistorySync";
@@ -34,12 +34,14 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
+  const { colors, scheme } = useTheme();
   useEnergyPolling(10000);
   useHistorySync();
 
   return (
     <>
-      <StatusBar style="light" />
+      {/* Status bar glyphs must contrast with the page, so they invert too. */}
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,

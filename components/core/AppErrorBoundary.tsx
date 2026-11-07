@@ -2,8 +2,7 @@ import React from "react";
 import { ScrollView, View } from "react-native";
 import { Txt } from "./Txt";
 import { Button } from "./Controls";
-import { colors } from "../../theme/colors";
-import { radius, space } from "../../theme/spacing";
+import { useTheme } from "../../theme/useTheme";
 
 /**
  * Replaces expo-router's default production error screen, which renders
@@ -11,6 +10,8 @@ import { radius, space } from "../../theme/spacing";
  * the only diagnostic available on an installed release build.
  */
 export function AppErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  const { colors, radius, space } = useTheme();
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.page }}

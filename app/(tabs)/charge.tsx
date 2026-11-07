@@ -13,8 +13,7 @@ import { SliderField } from "@/components/core/Controls";
 import { Frame } from "@/components/viz/Frame";
 import { HourStrip } from "@/components/viz/HourStrip";
 import { Legend } from "@/components/viz/Meters";
-import { colors } from "@/theme/colors";
-import { space } from "@/theme/spacing";
+import { useTheme } from "@/theme/useTheme";
 
 const hourLabel = (h: number) => `${String(Math.round(h)).padStart(2, "0")}h`;
 
@@ -36,6 +35,7 @@ function describeWindows(hours: number[]): string {
 }
 
 export default function ChargeScreen() {
+  const { colors, space } = useTheme();
   const { tariff, mockSite, evCharger } = useSettingsStore();
 
   const [energyNeededKwh, setEnergyNeededKwh] = useState(

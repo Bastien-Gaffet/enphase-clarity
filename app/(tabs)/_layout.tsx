@@ -2,14 +2,14 @@ import React from "react";
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "@/theme/colors";
-import { tabBarHeight } from "@/theme/spacing";
+import { useTheme } from "@/theme/useTheme";
 
 function TabIcon(name: React.ComponentProps<typeof Ionicons>["name"]) {
   return ({ color }: { color: string }) => <Ionicons name={name} size={20} color={color} />;
 }
 
 export default function TabLayout() {
+  const { colors, tabBarHeight } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (

@@ -2,8 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import { Txt } from "./Txt";
 import { Icon, IconBadge, IconName } from "./Icon";
-import { colors } from "../../theme/colors";
-import { space } from "../../theme/spacing";
+import { useTheme } from "../../theme/useTheme";
 
 /** A labelled figure. Used in pairs or triples inside a Surface. */
 export function StatBlock({
@@ -19,6 +18,8 @@ export function StatBlock({
   color?: string;
   caption?: string;
 }) {
+  const { space } = useTheme();
+
   return (
     <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -71,6 +72,8 @@ export function DataRow({
   value: string;
   sub?: string;
 }) {
+  const { space } = useTheme();
+
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
       <IconBadge name={icon} color={iconColor} />
@@ -94,13 +97,16 @@ export function DataRow({
 /** Small status marker. */
 export function Chip({
   label,
-  color = colors.ink.muted,
+  color,
   icon,
 }: {
   label: string;
   color?: string;
   icon?: IconName;
 }) {
+  const { colors } = useTheme();
+  const tone = color ?? colors.ink.muted;
+
   return (
     <View
       style={{
@@ -111,17 +117,17 @@ export function Chip({
         paddingVertical: 6,
         paddingHorizontal: 11,
         borderRadius: 999,
-        backgroundColor: `${color}14`,
+        backgroundColor: `${tone}14`,
         borderWidth: 1,
-        borderColor: `${color}3D`,
+        borderColor: `${tone}3D`,
       }}
     >
       {icon ? (
-        <Icon name={icon} size={12} color={color} />
+        <Icon name={icon} size={12} color={tone} />
       ) : (
-        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tone }} />
       )}
-      <Txt variant="overline" color={color}>
+      <Txt variant="overline" color={tone}>
         {label.toUpperCase()}
       </Txt>
     </View>
@@ -130,6 +136,8 @@ export function Chip({
 
 /** Section marker inside a Surface. */
 export function SectionHeader({ children, right }: { children: string; right?: React.ReactNode }) {
+  const { space } = useTheme();
+
   return (
     <View
       style={{

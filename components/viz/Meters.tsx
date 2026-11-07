@@ -2,8 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { Txt } from "../core/Txt";
-import { colors } from "../../theme/colors";
-import { radius, space } from "../../theme/spacing";
+import { useTheme } from "../../theme/useTheme";
 
 /** Ring meter with the figure in the middle. */
 export function Dial({
@@ -21,6 +20,7 @@ export function Dial({
   value: string;
   label?: string;
 }) {
+  const { colors } = useTheme();
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
   // A non-finite progress would make strokeDashoffset NaN and the ring vanish.
@@ -67,6 +67,7 @@ export interface Segment {
  * separate baselines; a single stacked bar does not.
  */
 export function SplitMeter({ segments, unit = "" }: { segments: Segment[]; unit?: string }) {
+  const { colors, radius, space } = useTheme();
   const safe = segments.map((s) => ({
     ...s,
     value: Number.isFinite(s.value) ? Math.max(0, s.value) : 0,
@@ -118,6 +119,7 @@ export function SplitMeter({ segments, unit = "" }: { segments: Segment[]; unit?
 
 /** Thin progress track for the payback bar. */
 export function Meter({ progress, color }: { progress: number; color: string }) {
+  const { colors, radius } = useTheme();
   const clamped = Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0;
   return (
     <View
@@ -143,6 +145,8 @@ export function Meter({ progress, color }: { progress: number; color: string }) 
 }
 
 export function Legend({ items }: { items: { label: string; color: string }[] }) {
+  const { space } = useTheme();
+
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
       {items.map((item) => (

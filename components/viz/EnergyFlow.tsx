@@ -3,7 +3,7 @@ import { Animated, Easing, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Txt } from "../core/Txt";
 import { IconBadge, IconName } from "../core/Icon";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../theme/useTheme";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -59,6 +59,7 @@ function linkPath(
 }
 
 function FlowLine({ d, color, active }: { d: string; color: string; active: boolean }) {
+  const { colors } = useTheme();
   const march = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -124,6 +125,7 @@ function Node({
   /** Top nodes put their caption above the badge so it never sits on a link. */
   labelAbove?: boolean;
 }) {
+  const { colors } = useTheme();
   const left = Math.max(0, Math.min(width - LABEL_W, x - LABEL_W / 2));
 
   const caption = (
@@ -178,6 +180,7 @@ export function EnergyFlow({
   consumptionKw: number;
   gridKw: number;
 }) {
+  const { colors } = useTheme();
   const { height, topY, homeY } = geometry(width);
   const centres: Record<NodeKey, { x: number; y: number }> = {
     solar: { x: NODE_X.solar * width, y: topY },

@@ -22,6 +22,9 @@ const VIEWPORTS = [
   { name: "360x800", width: 360, height: 800 },
   { name: "390x844", width: 390, height: 844 },
 ];
+/** Both schemes are audited: a light palette nobody looks at is how the
+ *  previous attempt at one silently rotted. */
+const SCHEMES = ["dark", "light"];
 
 /** Minimum breathing room between content and the inner edge of its card. */
 const EDGE_MIN_PX = 3;
@@ -164,6 +167,84 @@ function collectViolations({ edgeMin, overlapTolerance }) {
     }
   }
 
+
+  // 5. Text must stay legible against whatever it sits on. This is the rule
+  //    that keeps a second colour scheme honest: a light palette that drifts
+  //    shows up here rather than months later on someone's screen.
+  const parseColor = (value) => {
+    const m = /rgba?\(([^)]+)\)/.exec(value || "");
+    if (!m) return null;
+    const parts = m[1].split(",").map((n) => parseFloat(n));
+    const [r, g, b] = parts;
+    const a = parts.length > 3 ? parts[3] : 1;
+    return { r, g, b, a };
+  };
+
+  const luminance = ({ r, g, b }) => {
+    const chan = (c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
+  };
+
+  const over = (fg, bg) => ({
+    r: fg.r * fg.a + bg.r * (1 - fg.a),
+    g: fg.g * fg.a + bg.g * (1 - fg.a),
+    b: fg.b * fg.a + bg.b * (1 - fg.a),
+    a: 1,
+  });
+
+  /** Walks up for the first ancestor that actually paints something. */
+  const backdropOf = (el) => {
+    let node = el.parentElement;
+    let acc = null;
+    while (node) {
+      const c = parseColor(getComputedStyle(node).backgroundColor);
+      if (c && c.a > 0) {
+        acc = acc ? over(acc, c) : c;
+        if (acc.a >= 1 || c.a >= 1) return acc;
+      }
+      node = node.parentElement;
+    }
+    return acc;
+  };
+
+  for (const el of document.querySelectorAll("div, span, p")) {
+    if (el.children.length > 0) continue;
+    const text = (el.textContent || "").trim();
+    if (!text) continue;
+    if (!isVisible(el)) continue;
+
+    const cs = getComputedStyle(el);
+    const fg = parseColor(cs.color);
+    const bg = backdropOf(el);
+    if (!fg || !bg) continue;
+
+    const resolved = fg.a < 1 ? over(fg, bg) : fg;
+    const l1 = luminance(resolved);
+    const l2 = luminance(bg);
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+
+    const size = parseFloat(cs.fontSize);
+    const weight = parseInt(cs.fontWeight, 10) || 400;
+    const family = cs.fontFamily || "";
+    // Icon fonts draw glyphs, not prose. WCAG puts non-text content at 3:1
+    // (1.4.11) rather than the 4.5:1 of body copy.
+    const isIconGlyph = /ionicons|fontawesome|material/i.test(family);
+    // WCAG "large text": >= 24px, or >= 18.66px when bold.
+    const isLarge = size >= 24 || (size >= 18.66 && weight >= 700);
+    const required = isIconGlyph || isLarge ? 3 : 4.5;
+
+    if (ratio + 0.05 < required) {
+      push(
+        "low-contrast",
+        `contrast ${ratio.toFixed(2)}:1 against its background, needs ${required}:1 (${Math.round(size)}px, weight ${weight}${isIconGlyph ? ", icon" : ""})`,
+        el
+      );
+    }
+  }
+
   // 4. Siblings laid out in a column must not overlap each other.
   for (const parent of document.querySelectorAll("div")) {
     const kids = [...parent.children].filter((el) => el instanceof HTMLElement && isVisible(el));
@@ -203,10 +284,12 @@ async function auditScreen(page, screen, viewport, edgeMin, overlapTolerance) {
   });
   const findings = [];
 
+  for (const scheme of SCHEMES) {
   for (const vp of VIEWPORTS) {
+    const label = `${vp.name} ${scheme}`;
     const page = await browser.newPage({
       viewport: { width: vp.width, height: vp.height },
-      colorScheme: "dark",
+      colorScheme: scheme,
     });
     await page.goto(URL, { waitUntil: "networkidle", timeout: 60000 });
     await page.waitForTimeout(2500);
@@ -217,19 +300,20 @@ async function auditScreen(page, screen, viewport, edgeMin, overlapTolerance) {
         await tab.click().catch(() => {});
         await page.waitForTimeout(1000);
       }
-      findings.push(...(await auditScreen(page, screen, vp.name, EDGE_MIN_PX, OVERLAP_TOLERANCE_PX)));
+      findings.push(...(await auditScreen(page, screen, label, EDGE_MIN_PX, OVERLAP_TOLERANCE_PX)));
 
       // Scroll through the screen so blocks below the fold are measured too.
       for (let i = 0; i < 4; i++) {
         await page.mouse.move(vp.width / 2, vp.height / 2);
         await page.mouse.wheel(0, 600);
         await page.waitForTimeout(350);
-        findings.push(...(await auditScreen(page, screen, vp.name, EDGE_MIN_PX, OVERLAP_TOLERANCE_PX)));
+        findings.push(...(await auditScreen(page, screen, label, EDGE_MIN_PX, OVERLAP_TOLERANCE_PX)));
       }
       await page.mouse.wheel(0, -4000);
       await page.waitForTimeout(350);
     }
     await page.close();
+  }
   }
 
   await browser.close();

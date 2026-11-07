@@ -1,21 +1,18 @@
 import React from "react";
 import { Text as RNText, TextProps, TextStyle } from "react-native";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../theme/useTheme";
 import { type as typeScale, TypeToken } from "../../theme/typography";
 
-type Tone = "primary" | "secondary" | "muted" | "faint" | "accent" | "highlight" | "good" | "warning" | "critical";
-
-const TONES: Record<Tone, string> = {
-  primary: colors.ink.primary,
-  secondary: colors.ink.secondary,
-  muted: colors.ink.muted,
-  faint: colors.ink.faint,
-  accent: colors.brand.accent,
-  highlight: colors.brand.highlight,
-  good: colors.status.good,
-  warning: colors.status.warning,
-  critical: colors.status.critical,
-};
+type Tone =
+  | "primary"
+  | "secondary"
+  | "muted"
+  | "faint"
+  | "accent"
+  | "highlight"
+  | "good"
+  | "warning"
+  | "critical";
 
 interface TxtProps extends TextProps {
   variant?: TypeToken;
@@ -39,11 +36,27 @@ export function Txt({
   style,
   ...rest
 }: TxtProps) {
+  const { colors } = useTheme();
+
+  // Resolved per render, not at module load: a frozen map would keep whichever
+  // scheme happened to be active when the file was first imported.
+  const tones: Record<Tone, string> = {
+    primary: colors.ink.primary,
+    secondary: colors.ink.secondary,
+    muted: colors.ink.muted,
+    faint: colors.ink.faint,
+    accent: colors.brand.accent,
+    highlight: colors.brand.highlight,
+    good: colors.status.good,
+    warning: colors.status.warning,
+    critical: colors.status.critical,
+  };
+
   return (
     <RNText
       style={[
         typeScale[variant],
-        { color: color ?? TONES[tone] },
+        { color: color ?? tones[tone] },
         tabular ? typeScale.tabular : null,
         align ? { textAlign: align } : null,
         style,

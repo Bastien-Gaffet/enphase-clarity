@@ -1,10 +1,11 @@
 import { Link, Stack } from "expo-router";
 import { View } from "react-native";
 import { Txt } from "@/components/core/Txt";
-import { colors } from "@/theme/colors";
-import { space } from "@/theme/spacing";
+import { useTheme } from "@/theme/useTheme";
 
 export default function NotFoundScreen() {
+  const { colors, space } = useTheme();
+
   return (
     <>
       <Stack.Screen options={{ title: "Introuvable" }} />

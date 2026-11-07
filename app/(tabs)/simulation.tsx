@@ -12,8 +12,7 @@ import { Hero } from "@/components/core/Hero";
 import { SectionHeader, StatBlock } from "@/components/core/Blocks";
 import { SliderField } from "@/components/core/Controls";
 import { SplitMeter } from "@/components/viz/Meters";
-import { colors } from "@/theme/colors";
-import { space } from "@/theme/spacing";
+import { useTheme } from "@/theme/useTheme";
 
 const KWH_PER_KM = 0.18;
 
@@ -27,6 +26,7 @@ function monthsToText(months: number | null): string {
 }
 
 export default function SimulationScreen() {
+  const { colors, space } = useTheme();
   const { tariff, investment, mockSite, evCharger } = useSettingsStore();
 
   const [simPanelKwp, setSimPanelKwp] = useState(mockSite.panelKwp);

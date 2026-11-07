@@ -3,7 +3,8 @@ import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import Slider from "@react-native-community/slider";
 import { Txt } from "./Txt";
 import { Icon, IconName } from "./Icon";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../theme/useTheme";
+import type { Palette } from "../../theme/colors";
 import { radius, space } from "../../theme/spacing";
 
 export function Button({
@@ -21,6 +22,7 @@ export function Button({
   loading?: boolean;
   disabled?: boolean;
 }) {
+  const { colors } = useTheme();
   const isPrimary = variant === "primary";
   const isQuiet = variant === "quiet";
   const off = disabled || loading;
@@ -58,17 +60,20 @@ export function Button({
   );
 }
 
-const inputStyle = {
-  color: colors.ink.primary,
-  backgroundColor: colors.raised,
-  borderWidth: 1,
-  borderColor: colors.line.strong,
-  borderRadius: radius.sm,
-  paddingHorizontal: space.md,
-  paddingVertical: 11,
-  fontSize: 15,
-  minWidth: 0,
-} as const;
+/** Built per render so the field follows the active scheme. */
+function inputStyle(colors: Palette) {
+  return {
+    color: colors.ink.primary,
+    backgroundColor: colors.raised,
+    borderWidth: 1,
+    borderColor: colors.line.strong,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.md,
+    paddingVertical: 11,
+    fontSize: 15,
+    minWidth: 0,
+  } as const;
+}
 
 /** Numeric field. The unit rides in the label so it never steals input width. */
 export function NumberField({
@@ -82,6 +87,7 @@ export function NumberField({
   unit?: string;
   onChangeValue: (value: number) => void;
 }) {
+  const { colors } = useTheme();
   const [text, setText] = useState(String(value));
 
   return (
@@ -99,7 +105,7 @@ export function NumberField({
         onBlur={() => setText(String(value))}
         keyboardType="decimal-pad"
         placeholderTextColor={colors.ink.faint}
-        style={[inputStyle, { width: "100%", fontVariant: ["tabular-nums"] }]}
+        style={[inputStyle(colors), { width: "100%", fontVariant: ["tabular-nums"] }]}
       />
     </View>
   );
@@ -118,6 +124,8 @@ export function TextField({
   placeholder?: string;
   secure?: boolean;
 }) {
+  const { colors } = useTheme();
+
   return (
     <View style={{ minWidth: 0, gap: 6 }}>
       <Txt variant="overline" tone="muted">
@@ -131,7 +139,7 @@ export function TextField({
         secureTextEntry={secure}
         autoCapitalize="none"
         autoCorrect={false}
-        style={[inputStyle, { width: "100%" }]}
+        style={[inputStyle(colors), { width: "100%" }]}
       />
     </View>
   );
@@ -154,6 +162,8 @@ export function SliderField({
   onValueChange: (value: number) => void;
   format: (value: number) => string;
 }) {
+  const { colors } = useTheme();
+
   return (
     <View style={{ gap: 2 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -188,6 +198,8 @@ export function Segmented<T extends string>({
   value: T;
   onChange: (value: T) => void;
 }) {
+  const { colors } = useTheme();
+
   return (
     <View
       style={{

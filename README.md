@@ -41,12 +41,21 @@ de grille et le contour de l'éclair se peignent dans la couleur du fond, ce
 qui le garde net sur n'importe quelle surface. Les icônes d'application, le
 splash et le favicon sont générés depuis ce même tracé.
 
-**L'app est en mode sombre uniquement** (`userInterfaceStyle: "dark"`). La
-marque est ancrée sur un quasi-noir, et le thème clair était un reliquat de
-neutres chauds qui jurait avec elle : un second thème à moitié tenu vaut
-moins qu'un seul assumé. Les tokens restent séparés (marque / surfaces /
-encres / données), donc une échelle claire peut revenir sans toucher aux
-appels.
+### Thèmes clair et sombre
+
+Les deux schémas sont pris en charge, et l'app suit le réglage du système
+par défaut (**Réglages → Apparence** permet de forcer Clair ou Sombre).
+
+La palette claire n'est pas la sombre inversée : les surfaces y vont dans
+l'autre sens (le fond est le plan le plus foncé, les cartes s'en détachent
+en blanchissant), et l'accent comme le highlight y sont assombris — `#3685B5`
+et surtout `#A8F9FF` perdent tout contraste sur blanc.
+
+Les composants lisent leurs couleurs via `useTheme()`, jamais par import
+direct d'une palette : un import au niveau module fige un schéma au
+chargement, et c'est exactement ainsi que la première tentative de thème
+clair avait silencieusement pourri. L'audit ci-dessous tourne sur les deux
+thèmes pour que le second ne dérive plus sans qu'on le voie.
 
 ## Stack technique
 
@@ -102,14 +111,19 @@ Relire des captures à l'œil laisse passer les défauts de quelques pixels.
 | `svg-clipped` | un tracé dépasse de sa propre boîte SVG (trait rogné) |
 | `escapes-card` | du contenu sort du bord intérieur de sa carte, ou s'y colle |
 | `sibling-overlap` | deux blocs empilés se chevauchent |
+| `low-contrast` | texte sous le seuil WCAG AA face à son fond |
 
 ```bash
 npm run audit:layout        # sur un serveur web déjà lancé (npm run web)
 ```
 
-La mesure se fait en pixels écran et non en unités `viewBox` : comparer la
-`getBBox()` d'un SVG à sa largeur rendue signale à tort toute icône mise à
-l'échelle, et ignore l'épaisseur du trait.
+Deux précisions qui ont chacune coûté un faux positif :
+
+- la mesure géométrique se fait en pixels écran et non en unités `viewBox`.
+  Comparer la `getBBox()` d'un SVG à sa largeur rendue signale à tort toute
+  icône mise à l'échelle, et ignore l'épaisseur du trait.
+- les polices d'icônes (Ionicons) sont des glyphes texte mais du contenu
+  **non textuel** au sens WCAG : le seuil y est 3:1 (1.4.11), pas 4,5:1.
 
 Les trois vérifications (typecheck, tests, audit) tournent à chaque push via
 `.github/workflows/checks.yml`.

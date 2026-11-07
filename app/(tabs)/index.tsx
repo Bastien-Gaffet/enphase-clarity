@@ -12,8 +12,7 @@ import { Frame } from "@/components/viz/Frame";
 import { EnergyFlow } from "@/components/viz/EnergyFlow";
 import { DayCurve } from "@/components/viz/DayCurve";
 import { Legend } from "@/components/viz/Meters";
-import { colors } from "@/theme/colors";
-import { space } from "@/theme/spacing";
+import { useTheme } from "@/theme/useTheme";
 
 function kw(value: number): string {
   if (!Number.isFinite(value)) return "0.00";
@@ -21,6 +20,7 @@ function kw(value: number): string {
 }
 
 export default function DashboardScreen() {
+  const { colors, space } = useTheme();
   const { snapshot, todayIntervals, loading, refresh, error } = useEnergyStore();
   const tariff = useSettingsStore((s) => s.tariff);
 

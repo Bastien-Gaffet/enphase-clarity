@@ -7,6 +7,9 @@ import { defaultMockSite } from "../lib/enphase/mock";
 
 export type DataSource = "mock" | "live";
 
+/** "system" follows the OS setting; the others pin the scheme. */
+export type ThemePreference = "system" | "light" | "dark";
+
 export interface EvChargerConfig {
   chargerPowerKw: number;
   batteryCapacityKwh: number;
@@ -16,12 +19,14 @@ export interface EvChargerConfig {
 
 interface SettingsState {
   dataSource: DataSource;
+  themePreference: ThemePreference;
   tariff: TariffConfig;
   investment: SolarInvestment;
   mockSite: MockSiteConfig;
   evCharger: EvChargerConfig;
   enphaseSystemId: string;
   setDataSource: (source: DataSource) => void;
+  setThemePreference: (preference: ThemePreference) => void;
   setTariff: (tariff: Partial<TariffConfig>) => void;
   setInvestment: (investment: Partial<SolarInvestment>) => void;
   setMockSite: (site: Partial<MockSiteConfig>) => void;
@@ -55,12 +60,14 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       dataSource: "mock",
+      themePreference: "system",
       tariff: defaultTariff,
       investment: defaultInvestment,
       mockSite: defaultMockSite,
       evCharger: defaultEvCharger,
       enphaseSystemId: "",
       setDataSource: (dataSource) => set({ dataSource }),
+      setThemePreference: (themePreference) => set({ themePreference }),
       setTariff: (patch) => set((s) => ({ tariff: { ...s.tariff, ...patch } })),
       setInvestment: (patch) => set((s) => ({ investment: { ...s.investment, ...patch } })),
       setMockSite: (patch) => set((s) => ({ mockSite: { ...s.mockSite, ...patch } })),

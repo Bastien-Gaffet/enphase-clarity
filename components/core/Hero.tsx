@@ -1,8 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { Txt } from "./Txt";
-import { space } from "../../theme/spacing";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../theme/useTheme";
 
 /**
  * The focal block of a screen: one oversized figure, its unit, and a line of
@@ -25,6 +24,8 @@ export function Hero({
   /** Rendered under the caption — a chart or chip row. */
   children?: React.ReactNode;
 }) {
+  const { colors, space } = useTheme();
+
   return (
     <View style={{ gap: space.sm }}>
       <Txt variant="overline" tone="muted">
