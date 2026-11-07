@@ -20,15 +20,22 @@ interface DayCurveProps {
 
 const AXIS = 18;
 const HOURS = [0, 6, 12, 18, 24];
+/** Half the stroke width, so the line is fully inside the box at the edges. */
+const INSET = 2;
+/** Breathing room above the peak — a curve glued to the frame reads as clipped. */
+const HEADROOM = 1.1;
 
-function buildLine(values: number[], w: number, h: number, max: number, totalSlots: number): string {
+function buildLine(
+  values: number[],
+  xOf: (slot: number) => number,
+  h: number,
+  max: number
+): string {
   if (values.length === 0) return "";
-  const stepX = w / Math.max(1, totalSlots - 1);
   return values
     .map((v, i) => {
-      const x = i * stepX;
       const y = h - (max > 0 ? (v / max) * h : 0);
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+      return `${i === 0 ? "M" : "L"}${xOf(i).toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
 }
@@ -47,8 +54,11 @@ export function DayCurve({
 }: DayCurveProps) {
   const plotH = height - AXIS;
   const slots = 24 * samplesPerHour;
-  const max = Math.max(1e-6, ...series.flatMap((s) => s.values));
-  const xOf = (slot: number) => (slot / Math.max(1, slots - 1)) * width;
+  const peak = Math.max(1e-6, ...series.flatMap((s) => s.values));
+  const max = peak * HEADROOM;
+  // Plot inside a horizontal inset so the stroke is never half outside the box.
+  const innerW = Math.max(1, width - INSET * 2);
+  const xOf = (slot: number) => INSET + (slot / Math.max(1, slots - 1)) * innerW;
 
   const nightEnd = xOf(daylight.from * samplesPerHour);
   const nightStart = xOf(daylight.to * samplesPerHour);
@@ -101,14 +111,17 @@ export function DayCurve({
       <Line x1={0} y1={plotH} x2={width} y2={plotH} stroke={colors.line.strong} strokeWidth={1} />
 
       {series.map((s, i) => {
-        const line = buildLine(s.values, width, plotH, max, slots);
+        const line = buildLine(s.values, xOf, plotH, max);
         // An empty series would emit a `d` with no initial moveto — invalid SVG.
         if (!line) return null;
         const lastX = xOf(s.values.length - 1);
         return (
           <React.Fragment key={i}>
             {s.filled ? (
-              <Path d={`${line} L${lastX.toFixed(1)},${plotH} L0,${plotH} Z`} fill={`url(#fill${i})`} />
+              <Path
+                d={`${line} L${lastX.toFixed(1)},${plotH} L${INSET},${plotH} Z`}
+                fill={`url(#fill${i})`}
+              />
             ) : null}
             <Path d={line} stroke={s.color} strokeWidth={2} fill="none" strokeLinejoin="round" />
           </React.Fragment>

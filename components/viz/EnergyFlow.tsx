@@ -7,30 +7,46 @@ import { colors } from "../../theme/colors";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-/** Node centres as a fraction of the diagram box. */
-const NODES = {
-  solar: { x: 0.17, y: 0.3 },
-  grid: { x: 0.83, y: 0.3 },
-  home: { x: 0.5, y: 0.82 },
-};
+/** Horizontal node positions as a fraction of the diagram width. */
+const NODE_X = { solar: 0.17, grid: 0.83, home: 0.5 };
 
 const BADGE = 40;
 const LABEL_W = 98;
 const LABEL_H = 34;
+const LABEL_GAP = 5;
+
+/**
+ * Vertical geometry derived from the content rather than a ratio: the top row
+ * carries a caption above its badge and the home node one below, so a guessed
+ * height let the bottom caption spill out of the card.
+ */
+function geometry(width: number) {
+  const run = Math.max(74, Math.round(width * 0.3)); // diagonal drop between rows
+  const topY = LABEL_H + BADGE / 2;
+  const height = LABEL_H + BADGE + run + BADGE + LABEL_GAP + LABEL_H;
+  const homeY = height - LABEL_H - LABEL_GAP - BADGE / 2;
+  return { height, topY, homeY };
+}
+
+type NodeKey = "solar" | "grid" | "home";
 
 interface Link {
   key: string;
-  from: keyof typeof NODES;
-  to: keyof typeof NODES;
+  from: NodeKey;
+  to: NodeKey;
   color: string;
   /** 0 = idle (drawn faint, still), >0 = flowing. */
   kw: number;
 }
 
 /** Straight link, pulled back from both node badges so it never runs under them. */
-function linkPath(w: number, h: number, from: keyof typeof NODES, to: keyof typeof NODES): string {
-  const a = { x: NODES[from].x * w, y: NODES[from].y * h };
-  const b = { x: NODES[to].x * w, y: NODES[to].y * h };
+function linkPath(
+  centres: Record<NodeKey, { x: number; y: number }>,
+  from: NodeKey,
+  to: NodeKey
+): string {
+  const a = centres[from];
+  const b = centres[to];
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy) || 1;
@@ -162,7 +178,12 @@ export function EnergyFlow({
   consumptionKw: number;
   gridKw: number;
 }) {
-  const height = Math.round(width * 0.8);
+  const { height, topY, homeY } = geometry(width);
+  const centres: Record<NodeKey, { x: number; y: number }> = {
+    solar: { x: NODE_X.solar * width, y: topY },
+    grid: { x: NODE_X.grid * width, y: topY },
+    home: { x: NODE_X.home * width, y: homeY },
+  };
 
   const importing = gridKw > 0.05;
   const exporting = gridKw < -0.05;
@@ -194,7 +215,7 @@ export function EnergyFlow({
         {links.map((l) => (
           <FlowLine
             key={l.key}
-            d={linkPath(width, height, l.from, l.to)}
+            d={linkPath(centres, l.from, l.to)}
             color={l.color}
             active={l.kw > 0.05}
           />
@@ -202,8 +223,8 @@ export function EnergyFlow({
       </Svg>
 
       <Node
-        x={NODES.solar.x * width}
-        y={NODES.solar.y * height}
+        x={centres.solar.x}
+        y={centres.solar.y}
         width={width}
         icon="sunny"
         color={colors.energy.production}
@@ -213,8 +234,8 @@ export function EnergyFlow({
         labelAbove
       />
       <Node
-        x={NODES.grid.x * width}
-        y={NODES.grid.y * height}
+        x={centres.grid.x}
+        y={centres.grid.y}
         width={width}
         icon={exporting ? "arrow-up-circle" : "flash"}
         color={exporting ? colors.energy.surplus : colors.energy.grid}
@@ -224,8 +245,8 @@ export function EnergyFlow({
         labelAbove
       />
       <Node
-        x={NODES.home.x * width}
-        y={NODES.home.y * height}
+        x={centres.home.x}
+        y={centres.home.y}
         width={width}
         icon="home"
         color={colors.ink.secondary}

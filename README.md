@@ -85,7 +85,34 @@ tests.
   tout.
 - **Les graphiques mesurent leur conteneur** (`components/viz/Frame.tsx`) au
   lieu d'une largeur en dur, qui débordait sur les écrans étroits.
+- **Les boîtes se dimensionnent sur leur contenu**, pas sur un ratio : le
+  schéma de flux calcule sa hauteur depuis la taille réelle de ses libellés,
+  sinon la légende du bas sort de la carte.
 - **Pas d'emoji** : des icônes vectorielles, rendues identiquement partout.
+
+## Audit de mise en page
+
+Relire des captures à l'œil laisse passer les défauts de quelques pixels.
+`scripts/layout-audit.js` les mesure : il ouvre chaque écran en 360 et
+390 px de large, fait défiler, et vérifie quatre règles.
+
+| Règle | Ce qu'elle attrape |
+|---|---|
+| `horizontal-overflow` | la page défile latéralement |
+| `svg-clipped` | un tracé dépasse de sa propre boîte SVG (trait rogné) |
+| `escapes-card` | du contenu sort du bord intérieur de sa carte, ou s'y colle |
+| `sibling-overlap` | deux blocs empilés se chevauchent |
+
+```bash
+npm run audit:layout        # sur un serveur web déjà lancé (npm run web)
+```
+
+La mesure se fait en pixels écran et non en unités `viewBox` : comparer la
+`getBBox()` d'un SVG à sa largeur rendue signale à tort toute icône mise à
+l'échelle, et ignore l'épaisseur du trait.
+
+Les trois vérifications (typecheck, tests, audit) tournent à chaque push via
+`.github/workflows/checks.yml`.
 
 ## Démarrer
 
