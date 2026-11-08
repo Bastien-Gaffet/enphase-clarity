@@ -1,6 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { Txt } from "./Txt";
+import { Figure } from "./Figure";
 import { useTheme } from "../../theme/useTheme";
 
 /**
@@ -32,24 +33,7 @@ export function Hero({
         {label.toUpperCase()}
       </Txt>
 
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
-        <Txt
-          variant="hero"
-          tabular
-          color={valueColor ?? colors.ink.primary}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.5}
-          style={{ flexShrink: 1 }}
-        >
-          {value}
-        </Txt>
-        {unit ? (
-          <Txt variant="title" tone="muted" style={{ fontWeight: "600" }}>
-            {unit}
-          </Txt>
-        ) : null}
-      </View>
+      <Figure variant="hero" value={value} unit={unit} color={valueColor ?? colors.ink.primary} />
 
       {caption ? (
         <Txt variant="body" tone="secondary">

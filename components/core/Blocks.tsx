@@ -1,6 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { Txt } from "./Txt";
+import { Figure } from "./Figure";
 import { Icon, IconBadge, IconName } from "./Icon";
 import { useTheme } from "../../theme/useTheme";
 
@@ -31,23 +32,7 @@ export function StatBlock({
         </Txt>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3 }}>
-        <Txt
-          variant="display"
-          tabular
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.5}
-          style={{ flexShrink: 1 }}
-        >
-          {value}
-        </Txt>
-        {unit ? (
-          <Txt variant="body" tone="muted" numberOfLines={1}>
-            {unit}
-          </Txt>
-        ) : null}
-      </View>
+      <Figure variant="display" value={value} unit={unit} unitVariant="body" />
 
       {caption ? (
         <Txt variant="caption" tone="muted" numberOfLines={2}>
