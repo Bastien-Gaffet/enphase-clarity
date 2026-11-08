@@ -25,27 +25,51 @@ jobs:
       - name: Prebuild native Android project
         run: npx expo prebuild --platform android --no-install
 
-      # Keyed on the wrapper properties, so the distribution is only fetched
-      # again when the Gradle version actually changes.
+      # The Gradle wrapper fetches its distribution with a 10-second read
+      # timeout and no retry at all, and that host failed twice in a row
+      # (504, then a read timeout), killing the build at its second second.
+      # Fetch the archive with curl instead — real retries, several mirrors —
+      # and point the wrapper at the local copy.
       - name: Cache the Gradle distribution
         uses: actions/cache@v4
         with:
-          path: ~/.gradle/wrapper/dists
-          key: gradle-dist-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          path: ~/.gradle/dist
+          key: gradle-dist-${{ hashFiles('package-lock.json') }}
 
-      # services.gradle.org redirects to GitHub releases, which answered 504
-      # once and failed the whole build at the first second. The wrapper has no
-      # retry of its own, so warm it separately and give it three attempts.
       - name: Fetch the Gradle distribution
         working-directory: android
         run: |
-          for attempt in 1 2 3; do
-            ./gradlew --version && exit 0
-            echo "Gradle distribution download failed (attempt $attempt)."
-            rm -rf ~/.gradle/wrapper/dists
-            sleep $((attempt * 15))
-          done
-          exit 1
+          set -euo pipefail
+          props=gradle/wrapper/gradle-wrapper.properties
+          url=$(sed -n 's/^distributionUrl=//p' "$props" | sed 's/\\//g')
+          zip=$(basename "$url")
+          dest="$HOME/.gradle/dist/$zip"
+          mkdir -p "$HOME/.gradle/dist"
+
+          if [ ! -s "$dest" ]; then
+            version=${zip#gradle-}; version=${version%-*.zip}
+            for mirror in \
+              "$url" \
+              "https://downloads.gradle.org/distributions/$zip" \
+              "https://github.com/gradle/gradle-distributions/releases/download/v$version/$zip"
+            do
+              echo "Trying $mirror"
+              if curl -fSL --retry 5 --retry-all-errors --retry-delay 10 \
+                      --connect-timeout 30 --max-time 900 -o "$dest.part" "$mirror"; then
+                mv "$dest.part" "$dest"
+                break
+              fi
+              rm -f "$dest.part"
+            done
+          fi
+
+          # An HTML error page would also be "downloaded", so check it unzips.
+          unzip -tq "$dest"
+
+          # file:// has no timeout and cannot fail halfway. Properties files
+          # escape the colon, as the committed https URL already does.
+          sed -i "s|^distributionUrl=.*|distributionUrl=file\\\\://$dest|" "$props"
+          grep distributionUrl "$props"
 
       - name: Build release APK
         working-directory: android
