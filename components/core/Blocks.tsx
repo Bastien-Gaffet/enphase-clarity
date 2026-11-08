@@ -135,8 +135,16 @@ export function Chip({
 }
 
 /** Section marker inside a Surface. */
-export function SectionHeader({ children, right }: { children: string; right?: React.ReactNode }) {
-  const { space } = useTheme();
+export function SectionHeader({
+  children,
+  right,
+  icon,
+}: {
+  children: string;
+  right?: React.ReactNode;
+  icon?: IconName;
+}) {
+  const { colors, space } = useTheme();
 
   return (
     <View
@@ -147,9 +155,12 @@ export function SectionHeader({ children, right }: { children: string; right?: R
         gap: space.sm,
       }}
     >
-      <Txt variant="overline" tone="muted" numberOfLines={2} style={{ flexShrink: 1 }}>
-        {children.toUpperCase()}
-      </Txt>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 }}>
+        {icon ? <Icon name={icon} size={13} color={colors.ink.muted} /> : null}
+        <Txt variant="overline" tone="muted" numberOfLines={2} style={{ flexShrink: 1 }}>
+          {children.toUpperCase()}
+        </Txt>
+      </View>
       {right}
     </View>
   );

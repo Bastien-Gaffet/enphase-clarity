@@ -108,7 +108,9 @@ const light: typeof dark = {
     production: "#B87A0B",
     consumption: "#0B0F18",
     grid: "#2A6A91",
-    surplus: "#0E7F58",
+    // Also painted as chip text on a tint of itself, so it runs darker
+    // than the dark-mode green.
+    surplus: "#0C6E4C",
     evCharging: "#A8430F",
     heuresPleines: "#A8430F",
     heuresCreuses: "#2A6A91",

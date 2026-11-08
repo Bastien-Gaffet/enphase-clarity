@@ -90,7 +90,7 @@ export default function DashboardScreen() {
       ) : null}
 
       <Surface gap={space.sm}>
-        <SectionHeader>Où va l'énergie</SectionHeader>
+        <SectionHeader icon="git-network">Où va l'énergie</SectionHeader>
         <Frame>
           {(width) => (
             <EnergyFlow
@@ -104,7 +104,7 @@ export default function DashboardScreen() {
       </Surface>
 
       <Surface gap={space.md}>
-        <SectionHeader>Courbe du jour</SectionHeader>
+        <SectionHeader icon="analytics">Courbe du jour</SectionHeader>
         <Frame height={150}>
           {(width) => (
             <DayCurve
@@ -129,7 +129,7 @@ export default function DashboardScreen() {
       </Surface>
 
       <Surface gap={space.md}>
-        <SectionHeader>Aujourd'hui</SectionHeader>
+        <SectionHeader icon="today">Aujourd'hui</SectionHeader>
         <View style={{ flexDirection: "row", gap: space.lg }}>
           <StatBlock
             label="Autonomie"

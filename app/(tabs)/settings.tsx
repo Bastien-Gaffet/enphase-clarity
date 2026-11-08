@@ -109,7 +109,7 @@ export default function SettingsScreen() {
   return (
     <Screen title="Réglages">
       <Surface gap={space.md}>
-        <SectionHeader>Source de données</SectionHeader>
+        <SectionHeader icon="server">Source de données</SectionHeader>
         <Segmented
           value={dataSource}
           onChange={setDataSource}
@@ -126,7 +126,7 @@ export default function SettingsScreen() {
       </Surface>
 
       <Surface gap={space.md}>
-        <SectionHeader>Apparence</SectionHeader>
+        <SectionHeader icon="contrast">Apparence</SectionHeader>
         <Segmented
           value={themePreference}
           onChange={setThemePreference}
@@ -142,7 +142,7 @@ export default function SettingsScreen() {
       </Surface>
 
       <Surface gap={space.lg}>
-        <SectionHeader>Tarifs du contrat</SectionHeader>
+        <SectionHeader icon="pricetags">Tarifs du contrat</SectionHeader>
         <Row>
           <NumberField
             label="Heures pleines"
@@ -174,12 +174,12 @@ export default function SettingsScreen() {
       </Surface>
 
       <Surface gap={space.md}>
-        <SectionHeader>Plages heures creuses</SectionHeader>
+        <SectionHeader icon="moon">Plages heures creuses</SectionHeader>
         <TouWindowsEditor windows={tariff.hcWindows} onChange={(hcWindows) => setTariff({ hcWindows })} />
       </Surface>
 
       <Surface gap={space.lg}>
-        <SectionHeader>Installation solaire</SectionHeader>
+        <SectionHeader icon="sunny">Installation solaire</SectionHeader>
         <NumberField
           label="Prix total"
           unit="€"
@@ -212,7 +212,7 @@ export default function SettingsScreen() {
       </Surface>
 
       <Surface gap={space.lg}>
-        <SectionHeader>Véhicule électrique</SectionHeader>
+        <SectionHeader icon="car-sport">Véhicule électrique</SectionHeader>
         <Row>
           <NumberField
             label="Puissance"
@@ -281,7 +281,7 @@ export default function SettingsScreen() {
 
           {systems.length > 0 ? (
             <View style={{ gap: space.sm }}>
-              <SectionHeader>Installation</SectionHeader>
+              <SectionHeader icon="home">Installation</SectionHeader>
               {systems.map((sys) => {
                 const selected = String(sys.system_id) === enphaseSystemId;
                 return (

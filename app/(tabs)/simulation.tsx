@@ -86,7 +86,7 @@ export default function SimulationScreen() {
       </Hero>
 
       <Surface gap={space.lg}>
-        <SectionHeader>Hypothèses</SectionHeader>
+        <SectionHeader icon="flask">Hypothèses</SectionHeader>
         <SliderField
           label="Puissance des panneaux"
           value={simPanelKwp}
@@ -111,7 +111,7 @@ export default function SimulationScreen() {
       </Surface>
 
       <Surface gap={space.md}>
-        <SectionHeader>Charge du véhicule</SectionHeader>
+        <SectionHeader icon="car-sport">Charge du véhicule</SectionHeader>
         <View style={{ flexDirection: "row", gap: space.lg }}>
           <StatBlock
             label="Optimisée"
@@ -131,7 +131,7 @@ export default function SimulationScreen() {
       </Surface>
 
       <Surface gap={space.sm}>
-        <SectionHeader>Amortissement dans ce scénario</SectionHeader>
+        <SectionHeader icon="trending-up">Amortissement dans ce scénario</SectionHeader>
         <Txt variant="title">{monthsToText(payback.estimatedMonthsRemaining)}</Txt>
         <Txt variant="body" tone="secondary">
           Pour {investment.totalPriceEUR.toFixed(0)} € investis, à {solarMonthly.toFixed(0)} € d'économie

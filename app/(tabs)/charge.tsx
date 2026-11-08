@@ -117,7 +117,7 @@ export default function ChargeScreen() {
       </Hero>
 
       <Surface gap={space.md}>
-        <SectionHeader>Coût du kWh, heure par heure</SectionHeader>
+        <SectionHeader icon="pricetag">Coût du kWh, heure par heure</SectionHeader>
         <Frame height={92}>{(width) => <HourStrip data={cells} width={width} />}</Frame>
         <Legend
           items={[
@@ -132,7 +132,7 @@ export default function ChargeScreen() {
       </Surface>
 
       <Surface gap={space.md}>
-        <SectionHeader>Détail</SectionHeader>
+        <SectionHeader icon="list">Détail</SectionHeader>
         <View style={{ flexDirection: "row", gap: space.lg }}>
           <StatBlock
             label="Coût optimisé"
@@ -160,7 +160,7 @@ export default function ChargeScreen() {
       </Surface>
 
       <Surface gap={space.lg}>
-        <SectionHeader>Paramètres</SectionHeader>
+        <SectionHeader icon="options">Paramètres</SectionHeader>
         <SliderField
           label="Énergie à charger"
           value={energyNeededKwh}

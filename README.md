@@ -13,8 +13,11 @@ réseau, heures creuses/pleines, etc.) et reste identique sur tous les écrans.
 
 - **Tableau de bord temps réel** — production, consommation, import/export
   réseau, anneau d'autonomie, courbe du jour.
-- **Économies** — répartition heures creuses / heures pleines, revente du
-  surplus, progression de l'amortissement des panneaux avec date estimée.
+- **Économies** — statistiques par période (jour, semaine, mois, année,
+  depuis la mise en service) avec graphique par jour ou par mois, répartition
+  heures creuses / heures pleines, revente du surplus, et progression de
+  l'amortissement calculée sur toute la durée de vie de l'installation
+  indépendamment de la période affichée.
 - **Charge du véhicule électrique** — simulateur qui trouve les heures les
   moins chères pour charger (surplus solaire gratuit → heures creuses →
   heures pleines), avec puissance de charge et fenêtre horaire réglables.
@@ -98,6 +101,18 @@ tests.
   schéma de flux calcule sa hauteur depuis la taille réelle de ses libellés,
   sinon la légende du bas sort de la carte.
 - **Pas d'emoji** : des icônes vectorielles, rendues identiquement partout.
+
+## Polices : le piège du build natif
+
+`hooks/useAppFonts.ts` enregistre `Ionicons.font` et la police monospace des
+chiffres. **Ne pas retirer cet appel** : sur le web, `@expo/vector-icons`
+injecte une `@font-face` et tout s'affiche, alors qu'un APK release dessine
+des glyphes vides pour chaque icône. L'oubli est passé deux fois en revue
+sans être vu, d'où le test `hooks/__tests__/useAppFonts.test.ts` qui échoue
+si l'entrée Ionicons disparaît.
+
+Le chargement n'est jamais bloquant : `useAppFonts()` renvoie `true` aussi en
+cas d'échec, car une app sans icônes vaut mieux qu'un écran blanc.
 
 ## Audit de mise en page
 
