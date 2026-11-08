@@ -127,7 +127,7 @@ export default function ChargeScreen() {
           ]}
         />
         <Txt variant="caption" tone="faint">
-          Les barres pleines, soulignées de cyan, sont les heures retenues par le plan.
+          Les barres pleines et soulignées sont les heures retenues par le plan.
         </Txt>
       </Surface>
 
