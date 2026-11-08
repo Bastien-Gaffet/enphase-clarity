@@ -101,6 +101,10 @@ tests.
   schéma de flux calcule sa hauteur depuis la taille réelle de ses libellés,
   sinon la légende du bas sort de la carte.
 - **Pas d'emoji** : des icônes vectorielles, rendues identiquement partout.
+- **Les chiffres sont composés comme sur un instrument** : monospace, et les
+  décimales à 62 % de la partie entière (`components/core/Figure.tsx`). Une
+  police à chasse fixe donne au point décimal la largeur d'un chiffre — à
+  52 px, « 0.70 » se lisait « 0 . 70 ».
 
 ## Polices : le piège du build natif
 
