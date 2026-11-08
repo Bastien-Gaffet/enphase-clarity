@@ -25,6 +25,28 @@ jobs:
       - name: Prebuild native Android project
         run: npx expo prebuild --platform android --no-install
 
+      # Keyed on the wrapper properties, so the distribution is only fetched
+      # again when the Gradle version actually changes.
+      - name: Cache the Gradle distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      # services.gradle.org redirects to GitHub releases, which answered 504
+      # once and failed the whole build at the first second. The wrapper has no
+      # retry of its own, so warm it separately and give it three attempts.
+      - name: Fetch the Gradle distribution
+        working-directory: android
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew --version && exit 0
+            echo "Gradle distribution download failed (attempt $attempt)."
+            rm -rf ~/.gradle/wrapper/dists
+            sleep $((attempt * 15))
+          done
+          exit 1
+
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
