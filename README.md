@@ -108,15 +108,35 @@ tests.
 
 ## Polices : le piège du build natif
 
-`hooks/useAppFonts.ts` enregistre `Ionicons.font` et la police monospace des
-chiffres. **Ne pas retirer cet appel** : sur le web, `@expo/vector-icons`
-injecte une `@font-face` et tout s'affiche, alors qu'un APK release dessine
-des glyphes vides pour chaque icône. L'oubli est passé deux fois en revue
-sans être vu, d'où le test `hooks/__tests__/useAppFonts.test.ts` qui échoue
-si l'entrée Ionicons disparaît.
+Les deux polices (icônes Ionicons et chiffres SpaceMono) sont **embarquées
+dans l'APK** par le plugin `expo-font` déclaré dans `app.json`, et non
+chargées à l'exécution. Le chargement à l'exécution échouait sur un vrai
+téléphone alors que tout s'affichait dans le navigateur, et une icône
+`@expo/vector-icons` rend un texte vide tant que sa police n'est pas
+déclarée chargée : pastilles et barre d'onglets vides, deux fois.
 
-Le chargement n'est jamais bloquant : `useAppFonts()` renvoie `true` aussi en
-cas d'échec, car une app sans icônes vaut mieux qu'un écran blanc.
+Sur Android, une famille de police se résout par **nom de fichier, casse
+comprise**. D'où `assets/fonts/ionicons.ttf` (la famille demandée est en
+minuscules) et `assets/fonts/SpaceMono.ttf`. `hooks/__tests__/useAppFonts.test.ts`
+échoue si une famille n'est pas embarquée sous son nom exact, ou si la copie
+d'`ionicons.ttf` diverge du `@expo/vector-icons` installé (tous les glyphes
+seraient décalés).
+
+Sur le web, `hooks/useAppFonts.ts` charge la même table via `useFonts`.
+Le hook journalise l'état de chaque police (`[fonts] android ionicons=ok …`)
+au lieu d'avaler une erreur.
+
+## Test sur émulateur Android
+
+Le workflow de build (`.github/workflows/build-android.yml`) installe l'APK
+release sur un émulateur Android 14, le lance, lit la ligne `[fonts]` dans
+logcat et **échoue si une police manque**. Une capture de l'écran est
+imprimée en base64 entre `SCREENSHOT-BEGIN` et `SCREENSHOT-END` dans le log
+(`scripts/android-smoke.sh`).
+
+Il existe parce que l'audit ci-dessous tourne dans un navigateur, et que
+trois défauts visibles seulement sur appareil (écran blanc, icônes vides
+deux fois) sont passés alors qu'il était vert.
 
 ## Audit de mise en page
 
@@ -144,7 +164,7 @@ Deux précisions qui ont chacune coûté un faux positif :
 - les polices d'icônes (Ionicons) sont des glyphes texte mais du contenu
   **non textuel** au sens WCAG : le seuil y est 3:1 (1.4.11), pas 4,5:1.
 
-Les trois vérifications (typecheck, tests, audit) tournent à chaque push via
+Typecheck, tests et audit tournent à chaque push via
 `.github/workflows/checks.yml`.
 
 ## Démarrer
